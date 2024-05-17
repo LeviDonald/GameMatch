@@ -5,6 +5,8 @@ app = Flask(__name__)
 
 DATABASE = "gamematch.db"
 HOME = "home.html"
+GAMES = "games.html"
+
 
 def connect_database_id(statement, id):
     conn = sqlite3.connect(DATABASE)
@@ -27,6 +29,11 @@ def connect_database(statement):
 @app.route("/")
 def home():
     return render_template(HOME)
+
+
+@app.route("/games")
+def games():
+    return render_template(GAMES)
 
 
 if __name__ == "__main__":
