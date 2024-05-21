@@ -1,4 +1,11 @@
 {% extends "layout.html" %}
 {% block content %}
-<p>no games here</p>
+{% if page != 1 %}
+<p><a href="/games/{{page-1}}">PREVIOUS</a>{% endif %} <a href="/games/{{page+1}}">NEXT</a></p>
+{% for game in game_info %}
+<p>{{game}}</p>
+<hr>
+{% endfor %}
+{% if page != 1 %}
+<p><a href="/games/{{page-1}}">PREVIOUS</a>{% endif %} <a href="/games/{{page+1}}">NEXT</a></p>
 {% endblock %}
