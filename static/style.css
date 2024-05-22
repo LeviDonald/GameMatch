@@ -1,0 +1,8 @@
+@font-face {
+    font-family: coolfont;
+    src: url('Acadian_Runes-Regular.ttf');
+}
+
+p {
+    font-family: coolfont;
+}
