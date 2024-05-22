@@ -1,4 +1,4 @@
-from flask import Flask, render_template, abort, url_for
+from flask import Flask, render_template, abort, url_for, request, redirect
 import sqlite3
 from math import ceil
 
@@ -8,6 +8,7 @@ DATABASE = "gamematch.db"
 HOME = "home.html"
 GAMES = "games.html"
 ERROR404 = "404.html"
+
 
 # Easy query process function (TO DO: possibly convert into class)
 # Use when using SELECT queries :)
@@ -21,6 +22,7 @@ def select_database(query, id=None):
     results = cursor.fetchall()
     conn.close()
     return results
+
 
 # Use when using queries which include:
 # UPDATE, DROP, DELETE, INSERT and etc.
@@ -48,7 +50,7 @@ def home():
 @app.route("/games/<int:page>")
 def games(page):
     limit = 5
-    offset = (page-1)*10
+    offset = (page-1)*limit
     try:
         max_pages = select_database("SELECT COUNT(*) FROM games;")
         max_pages = ceil(max_pages[0][0] / limit)
@@ -65,6 +67,15 @@ def games(page):
         return render_template(GAMES, game_info=game_info, page=page, max_pages=max_pages)
     except Exception as e:
         abort(404, e)
+
+
+@app.route("/number_search")
+def number_search():
+    if request.method == "POST":
+        search_number = request.form.get("page_num")
+    else:
+        search_number = request.args.get("page_num")
+    return redirect(url_for('games', page=search_number))
 
 # Manually convert ANSI data to UTF-8 (Japanese characters didn't load :( )
 
@@ -102,10 +113,12 @@ def remove_bad_games(ids, name):
         # Disposes of unnecessary data from bridge table
         commit_database("DELETE FROM game_{} WHERE {}_id = ?".format(name, name), (i,))
 
-bad_games = select_database("SELECT game_id FROM games WHERE notes LIKE '%nudity%';")
-for i in bad_games:
-    commit_database("DELETE FROM games WHERE game_id = ?;", (i[0],))
-print("don")
+
+# Manually erase games that use bad words
+# bad_games = select_database("SELECT game_id FROM games WHERE notes LIKE '%nudity%';")
+# for i in bad_games:
+#     commit_database("DELETE FROM games WHERE game_id = ?;", (i[0],))
+# print("don")
 
 
 if __name__ == "__main__":

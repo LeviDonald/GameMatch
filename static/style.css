@@ -6,3 +6,7 @@
 p {
     font-family: coolfont;
 }
+
+.search_number {
+    display: inline;
+}
