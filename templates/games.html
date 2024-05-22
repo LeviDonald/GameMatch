@@ -1,5 +1,6 @@
 {% extends "layout.html" %}
 {% block content %}
+<p>{{page}} / {{max_pages}}</p>
 {% if page != 1 %}
 <p><a href="/games/{{page-1}}">PREVIOUS</a>{% endif %} <a href="/games/{{page+1}}">NEXT</a></p>
 {% for game in game_info %}
@@ -8,5 +9,6 @@
 <hr>
 {% endfor %}
 {% if page != 1 %}
-<p><a href="/games/{{page-1}}">PREVIOUS</a>{% endif %} <a href="/games/{{page+1}}">NEXT</a></p>
+<p><a href="/games/{{page-1}}">PREVIOUS</a>{% endif %} {% if page != max_pages %}<a href="/games/{{page+1}}">NEXT</a>{% endif %}</p>
+<p>{{page}} / {{max_pages}}</p>
 {% endblock %}
