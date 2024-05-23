@@ -7,8 +7,9 @@ app = Flask(__name__)
 DATABASE = "gamematch.db"
 HOME = "home.html"
 GAMES = "games.html"
+SEARCH_GAMES = "search.html"
 ERROR404 = "404.html"
-
+LIMIT = 5
 
 # Easy query process function (TO DO: possibly convert into class)
 # Use when using SELECT queries :)
@@ -75,7 +76,7 @@ def remove_bad_games(ids, name):
 
 
 # Manually erase games that use bad words
-# bad_games = select_database("SELECT game_id FROM games WHERE notes LIKE '%nudity%';")
+# bad_games = select_database("SELECT game_id FROM games WHERE notes LIKE '%(BAD WORD GOES HERE)%';")
 # for i in bad_games:
 #     commit_database("DELETE FROM games WHERE game_id = ?;", (i[0],))
 # print("don")
@@ -93,7 +94,6 @@ def home():
 
 @app.route("/games/<int:page>")
 def games(page):
-    LIMIT = 5
     offset = (page-1)*LIMIT
     try:
         max_pages = select_database("SELECT COUNT(*) FROM games;")
@@ -115,13 +115,62 @@ def games(page):
         abort(404, e)
 
 
-@app.route("/number_search")
-def number_search():
-    if request.method == "POST":
-        search_number = request.form.get("page_num")
-    else:
-        search_number = request.args.get("page_num")
-    return redirect(url_for('games', page=search_number))
+# Gateway for page changes, gets page num and redirects back to 'games'
+@app.route("/number_game")
+def number_game():
+    try:
+        if request.method == "POST":
+            search_number = request.form.get("page_num")
+        else:
+            search_number = request.args.get("page_num")
+        return redirect(url_for('games', page=search_number))
+    except Exception as e:
+        abort(404, e)
+
+
+# Gateway for page changes, gets page num and redirects back to 'search'
+@app.route("/number_search/<string:search_text>")
+def number_search(search_text):
+    try:
+        if request.method == "POST":
+            search_number = request.form.get("page_num")
+        else:
+            search_number = request.args.get("page_num")
+        return redirect(url_for('search', page=search_number, search_text=search_text))
+    except Exception as e:
+        abort(404, e)
+
+
+# Searching for specific games using search box
+@app.route("/search/<int:page>", methods=['GET'])
+@app.route("/search/<int:page>/<string:search_text>", methods=['GET'])
+def search(page, search_text=None):
+    try:
+        if search_text:
+            search_text = search_text
+        elif request.method == "GET":
+            search_text = request.args.get("search_text")
+        if not search_text:
+            return redirect(url_for('games', page=1))
+        offset = (page-1)*LIMIT
+        search_text_query = f'%{search_text}%'
+        max_pages = select_database("SELECT COUNT(*) FROM games WHERE name LIKE ?;", (search_text_query,))
+        max_pages = ceil(max_pages[0][0] / LIMIT)
+        search_results = select_database("SELECT game_id, name, release_date, price, synopsis, header_image FROM games WHERE name LIKE ? ORDER BY name LIMIT ? OFFSET ?;", (search_text_query, LIMIT, offset))
+        if search_results:
+            for count, game in enumerate(search_results):
+                game = list(game)
+                genres = select_database("SELECT genre_id FROM game_genre WHERE game_id = ?;", (game[0],))
+                genre_list = []
+                for genre in genres:
+                    genre_list.append(select_database("SELECT genre_name FROM genres WHERE genre_id = ?;", (genre[0],))[0][0])
+                game.append(genre_list)
+                search_results[count] = game
+                return render_template(SEARCH_GAMES, game_info=search_results, page=page, max_pages=max_pages, search_text=search_text)
+        else:
+            abort(404, "")
+    except Exception as e:
+        abort(404, e)
 
 
 if __name__ == "__main__":

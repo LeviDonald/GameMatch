@@ -3,8 +3,8 @@
 <h2><u>SEARCH</u> - <form method="get" action="/search/1" class="search_number"><input type="text" name="search_text" placeholder="Type something :)" min="1" max="100"></form></h2>
 <hr>
 {% if page != 1 and page != 0 %}
-<p><a href="/games/{{page-1}}">PREVIOUS</a>{% endif %} {% if page != max_pages %}<a href="/games/{{page+1}}">NEXT</a>{% endif %}</p>
-<p><form method="get" action="/number_game" class="search_number"><input type="number" name="page_num" placeholder="{{page}}" min="1" max="{{max_pages}}"></form> / {{max_pages}}</p>
+<p><a href="/search/{{page-1}}/{{search_text}}">PREVIOUS</a>{% endif %} {% if page != max_pages %}<a href="/search/{{page+1}}/{{search_text}}">NEXT</a>{% endif %}</p>
+<p><form method="get" action="/number_search/{{search_text}}" class="search_number"><input type="number" name="page_num" placeholder="{{page}}" min="1" max="{{max_pages}}"></form> / {{max_pages}}</p>
 <hr>
 {% for game in game_info %}
 <div class="games">
@@ -24,6 +24,6 @@
 </div>
 {% endfor %}
 {% if page != 1 and page != 0 %}
-<p><a href="/games/{{page-1}}">PREVIOUS</a>{% endif %} {% if page != max_pages %}<a href="/games/{{page+1}}">NEXT</a>{% endif %}</p>
-<p><form method="get" action="/number_game" class="search_number"><input type="number" name="page_num" placeholder="{{page}}" min="1" max="{{max_pages}}"></form> / {{max_pages}}</p>
+<p><a href="/search/{{page-1}}/{{search_text}}">PREVIOUS</a>{% endif %} {% if page != max_pages %}<a href="/search/{{page+1}}/{{search_text}}">NEXT</a>{% endif %}</p>
+<p><form method="get" action="/number_search/{{search_text}}" class="search_number"><input type="number" name="page_num" placeholder="{{page}}" min="1" max="{{max_pages}}"></form> / {{max_pages}}</p>
 {% endblock %}
