@@ -37,46 +37,6 @@ def commit_database(query, id=None):
     conn.close()
 
 
-@app.errorhandler(404)
-def error_404(exception):
-    return render_template(ERROR404, exception=exception)
-
-
-@app.route("/")
-def home():
-    return render_template(HOME)
-
-
-@app.route("/games/<int:page>")
-def games(page):
-    limit = 5
-    offset = (page-1)*limit
-    try:
-        max_pages = select_database("SELECT COUNT(*) FROM games;")
-        max_pages = ceil(max_pages[0][0] / limit)
-        # 0 - ID, 1 - Name, 2 - Release, 3 - Price, 4 - Synopsis, 5 - Image, 6 - Genres
-        game_info = select_database("SELECT game_id, name, release_date, price, synopsis, header_image FROM games ORDER BY name LIMIT ? OFFSET ?;", (limit, offset))
-        for count, game in enumerate(game_info):
-            game = list(game)
-            genres = select_database("SELECT genre_id FROM game_genre WHERE game_id = ?;", (game[0],))
-            genre_list = []
-            for genre in genres:
-                genre_list.append(select_database("SELECT genre_name FROM genres WHERE genre_id = ?;", (genre[0],))[0][0])
-            game.append(genre_list)
-            game_info[count] = game
-        return render_template(GAMES, game_info=game_info, page=page, max_pages=max_pages)
-    except Exception as e:
-        abort(404, e)
-
-
-@app.route("/number_search")
-def number_search():
-    if request.method == "POST":
-        search_number = request.form.get("page_num")
-    else:
-        search_number = request.args.get("page_num")
-    return redirect(url_for('games', page=search_number))
-
 # Manually convert ANSI data to UTF-8 (Japanese characters didn't load :( )
 
 # def ansi_to_utf(table_name):
@@ -119,6 +79,49 @@ def remove_bad_games(ids, name):
 # for i in bad_games:
 #     commit_database("DELETE FROM games WHERE game_id = ?;", (i[0],))
 # print("don")
+
+
+@app.errorhandler(404)
+def error_404(exception):
+    return render_template(ERROR404, exception=exception)
+
+
+@app.route("/")
+def home():
+    return render_template(HOME)
+
+
+@app.route("/games/<int:page>")
+def games(page):
+    LIMIT = 5
+    offset = (page-1)*LIMIT
+    try:
+        max_pages = select_database("SELECT COUNT(*) FROM games;")
+        max_pages = ceil(max_pages[0][0] / LIMIT)
+        if page > max_pages:
+            abort(404, "This page doesn't exist!")
+        # 0 - ID, 1 - Name, 2 - Release, 3 - Price, 4 - Synopsis, 5 - Image, 6 - Genres
+        game_info = select_database("SELECT game_id, name, release_date, price, synopsis, header_image FROM games ORDER BY name LIMIT ? OFFSET ?;", (LIMIT, offset))
+        for count, game in enumerate(game_info):
+            game = list(game)
+            genres = select_database("SELECT genre_id FROM game_genre WHERE game_id = ?;", (game[0],))
+            genre_list = []
+            for genre in genres:
+                genre_list.append(select_database("SELECT genre_name FROM genres WHERE genre_id = ?;", (genre[0],))[0][0])
+            game.append(genre_list)
+            game_info[count] = game
+        return render_template(GAMES, game_info=game_info, page=page, max_pages=max_pages)
+    except Exception as e:
+        abort(404, e)
+
+
+@app.route("/number_search")
+def number_search():
+    if request.method == "POST":
+        search_number = request.form.get("page_num")
+    else:
+        search_number = request.args.get("page_num")
+    return redirect(url_for('games', page=search_number))
 
 
 if __name__ == "__main__":
