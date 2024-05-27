@@ -6,23 +6,18 @@
 <p><a href="/search/{{page-1}}/{{search_text}}">PREVIOUS</a>{% endif %} {% if page != max_pages %}<a href="/search/{{page+1}}/{{search_text}}">NEXT</a>{% endif %}</p>
 <p><form method="get" action="/number_search/{{search_text}}" class="search_number"><input type="number" name="page_num" placeholder="{{page}}" min="1" max="{{max_pages}}"></form> / {{max_pages}}</p>
 <hr>
-{% for game in game_info %}
-<div class="games">
-    <h3><u><b>{{game[1]}}</b></u></h3>
-    <h4>Release Date - <i>{{game[2]}}</i></p></h4>
-    <h4>Price - <i>{{game[3]}}</i></p></h4>
-    {% if game[6] %}
-    <p><b>Genres:</b></p>
-    {% for genre in game[6] %}
-    <p>{{genre}}</p>
+{% if game_info != None %}
+    {% for game in game_info %}
+    <div class="games">
+        <h3><u><b>{{game[1]}}</b></u></h3>
+        <img src="{{game[2]}}" loading=lazy>
+        <hr>
+    </div>
     {% endfor %}
-    {% endif %}
-    <p><b>Synopsis:</b></p>
-    <p>{{game[4]}}</p>
-    <img src="{{game[5]}}" loading=lazy>
-    <hr>
-</div>
-{% endfor %}
+{% else %}
+    <h4><u>No search results!</u></h4>
+    <p>(Try searching again!)</p>
+{% endif %}
 {% if page != 1 and page != 0 %}
 <p><a href="/search/{{page-1}}/{{search_text}}">PREVIOUS</a>{% endif %} {% if page != max_pages %}<a href="/search/{{page+1}}/{{search_text}}">NEXT</a>{% endif %}</p>
 <p><form method="get" action="/number_search/{{search_text}}" class="search_number"><input type="number" name="page_num" placeholder="{{page}}" min="1" max="{{max_pages}}"></form> / {{max_pages}}</p>

@@ -9,17 +9,7 @@
 {% for game in game_info %}
 <div class="games">
     <h3><u><b>{{game[1]}}</b></u></h3>
-    <h4>Release Date - <i>{{game[2]}}</i></p></h4>
-    <h4>Price - <i>{{game[3]}}</i></p></h4>
-    {% if game[6] %}
-    <p><b>Genres:</b></p>
-    {% for genre in game[6] %}
-    <p>{{genre}}</p>
-    {% endfor %}
-    {% endif %}
-    <p><b>Synopsis:</b></p>
-    <p>{{game[4]}}</p>
-    <img src="{{game[5]}}" loading=lazy>
+    <img src="{{game[2]}}" loading=lazy>
     <hr>
 </div>
 {% endfor %}

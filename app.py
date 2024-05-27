@@ -100,19 +100,30 @@ def games(page):
         max_pages = ceil(max_pages[0][0] / LIMIT)
         if page > max_pages:
             abort(404, "This page doesn't exist!")
-        # 0 - ID, 1 - Name, 2 - Release, 3 - Price, 4 - Synopsis, 5 - Image, 6 - Genres
-        game_info = select_database("SELECT game_id, name, release_date, price, synopsis, header_image FROM games ORDER BY name LIMIT ? OFFSET ?;", (LIMIT, offset))
-        for count, game in enumerate(game_info):
-            game = list(game)
-            genres = select_database("SELECT genre_id FROM game_genre WHERE game_id = ?;", (game[0],))
-            genre_list = []
-            for genre in genres:
-                genre_list.append(select_database("SELECT genre_name FROM genres WHERE genre_id = ?;", (genre[0],))[0][0])
-            game.append(genre_list)
-            game_info[count] = game
-        return render_template(GAMES, game_info=game_info, page=page, max_pages=max_pages)
+        # 0 - ID, 1 - Name, 2 - Image
+        game_info = select_database("SELECT game_id, name, header_image FROM games ORDER BY name LIMIT ? OFFSET ?;", (LIMIT, offset))
+        if game_info:
+            # for count, game in enumerate(game_info):
+            #     game = list(game)
+            #     genres = select_database("SELECT genre_id FROM game_genre WHERE game_id = ?;", (game[0],))
+            #     genre_list = []
+            #     for genre in genres:
+            #         genre_list.append(select_database("SELECT genre_name FROM genres WHERE genre_id = ?;", (genre[0],))[0][0])
+            #     game.append(genre_list)
+            #     game_info[count] = game
+            return render_template(GAMES, game_info=game_info, page=page, max_pages=max_pages)
+        else:
+            abort(404, "This page doesn't exist!")
     except Exception as e:
         abort(404, e)
+
+
+@app.route("/game/<int:game_id>")
+def single_game(game_id):
+    class game():
+        def __init__(self):
+            game_info = select_database("SELECT name, ")
+    
 
 
 # Gateway for page changes, gets page num and redirects back to 'games'
@@ -156,19 +167,20 @@ def search(page, search_text=None):
         search_text_query = f'%{search_text}%'
         max_pages = select_database("SELECT COUNT(*) FROM games WHERE name LIKE ?;", (search_text_query,))
         max_pages = ceil(max_pages[0][0] / LIMIT)
-        search_results = select_database("SELECT game_id, name, release_date, price, synopsis, header_image FROM games WHERE name LIKE ? ORDER BY name LIMIT ? OFFSET ?;", (search_text_query, LIMIT, offset))
+        search_results = select_database("SELECT game_id, name, header_image FROM games WHERE name LIKE ? ORDER BY name LIMIT ? OFFSET ?;", (search_text_query, LIMIT, offset))
+        # [0] - Game ID, [1] - Name, [2] - Image
         if search_results:
-            for count, game in enumerate(search_results):
-                game = list(game)
-                genres = select_database("SELECT genre_id FROM game_genre WHERE game_id = ?;", (game[0],))
-                genre_list = []
-                for genre in genres:
-                    genre_list.append(select_database("SELECT genre_name FROM genres WHERE genre_id = ?;", (genre[0],))[0][0])
-                game.append(genre_list)
-                search_results[count] = game
-                return render_template(SEARCH_GAMES, game_info=search_results, page=page, max_pages=max_pages, search_text=search_text)
+            # for count, game in enumerate(search_results):
+            #     game = list(game)
+            #     genres = select_database("SELECT genre_id FROM game_genre WHERE game_id = ?;", (game[0],))
+            #     genre_list = []
+            #     for genre in genres:
+            #         genre_list.append(select_database("SELECT genre_name FROM genres WHERE genre_id = ?;", (genre[0],))[0][0])
+            #     game.append(genre_list)
+            #     search_results[count] = game
+            return render_template(SEARCH_GAMES, game_info=search_results, page=page, max_pages=max_pages, search_text=search_text)
         else:
-            abort(404, "")
+            return render_template(SEARCH_GAMES, game_info=None, page=page, max_pages=max_pages, search_text=search_text)
     except Exception as e:
         abort(404, e)
 
