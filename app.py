@@ -8,6 +8,7 @@ DATABASE = "gamematch.db"
 HOME = "home.html"
 GAMES = "games.html"
 SEARCH_GAMES = "search.html"
+SELECTED_GAME = "selected_game.html"
 ERROR404 = "404.html"
 LIMIT = 5
 
@@ -122,6 +123,7 @@ def games(page):
 def single_game(game_id):
     class game():
         def __init__(self, game_id):
+            # Gets basic info from the games table
             game_info = select_database("SELECT name, release_date, price, synopsis, header_image, website, notes, average_playtime FROM games WHERE game_id = ?;", (game_id,))[0]
             self.name = game_info[0]
             self.date = game_info[1]
@@ -131,18 +133,31 @@ def single_game(game_id):
             self.website = game_info[5]
             self.notes = game_info[6]
             self.average_playtime = game_info[7]
+            self.game_id = game_id
 
-        def genres(self, game_id):
-            genres = select_database("SELECT genre_id FROM game_genre WHERE game_id = ?;", (game_id,))
-            genre_list = []
-            for genre in genres:
-                genre_list.append(select_database("SELECT genre_name FROM genres WHERE genre_id = ?;", (genre[0],))[0][0])
-            return genre_list
+        # List of applicable tables :
+        # 'genre', 'category', 'tag', 'developer', 'publisher'
+        def select_bridge(self, table):
+            # Gets IDs from associated games' bridge table to use on the corresponding table to get names
+            results = select_database("SELECT %.9s_id FROM game_%.9s WHERE game_id = %.9s;" % (table, table, self.game_id))
+            if results:
+                result_list = []
+                for result in results:
+                    result_list.append(select_database("SELECT %.9s_name FROM %.9ss WHERE %.9s_id = %.9s;" % (table, table, table, result[0]))[0][0])
+                return result_list
+            else:
+                return None
 
-        def categories(self, game_id):
-            categories = select_database("SELECT category_id FROM categories WHERE game_id = ?;", (game_id,))
-            category_list = []
-
+        def basic_info(self):
+            return [self.name, self.date, self.price, self.synopsis, self.header, self.website, self.notes, self.average_playtime]
+    selected_game = game(game_id)
+    game_info = selected_game.basic_info()
+    genres = selected_game.select_bridge('genre')
+    tags = selected_game.select_bridge('tag')
+    categories = selected_game.select_bridge('category')
+    developers = selected_game.select_bridge('developer')
+    publishers = selected_game.select_bridge('publisher')
+    return render_template(SELECTED_GAME, game_info=game_info, genres=genres, tags=tags, categories=categories, developers=developers, publishers=publishers)
 
 
 # Gateway for page changes, gets page num and redirects back to 'games'
