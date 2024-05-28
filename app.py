@@ -121,9 +121,28 @@ def games(page):
 @app.route("/game/<int:game_id>")
 def single_game(game_id):
     class game():
-        def __init__(self):
-            game_info = select_database("SELECT name, ")
-    
+        def __init__(self, game_id):
+            game_info = select_database("SELECT name, release_date, price, synopsis, header_image, website, notes, average_playtime FROM games WHERE game_id = ?;", (game_id,))[0]
+            self.name = game_info[0]
+            self.date = game_info[1]
+            self.price = game_info[2]
+            self.synopsis = game_info[3]
+            self.header = game_info[4]
+            self.website = game_info[5]
+            self.notes = game_info[6]
+            self.average_playtime = game_info[7]
+
+        def genres(self, game_id):
+            genres = select_database("SELECT genre_id FROM game_genre WHERE game_id = ?;", (game_id,))
+            genre_list = []
+            for genre in genres:
+                genre_list.append(select_database("SELECT genre_name FROM genres WHERE genre_id = ?;", (genre[0],))[0][0])
+            return genre_list
+
+        def categories(self, game_id):
+            categories = select_database("SELECT category_id FROM categories WHERE game_id = ?;", (game_id,))
+            category_list = []
+
 
 
 # Gateway for page changes, gets page num and redirects back to 'games'
