@@ -3,10 +3,22 @@
     src: url('JosefinSans-VariableFont_wght.ttf');
 }
 
-p {
+body {
     font-family: coolfont;
 }
 
 .search_number {
     display: inline;
+}
+
+.same_line {
+    display: inline-block;
+}
+
+section {
+    display: inline;
+}
+
+h3, p {
+    display:inline;
 }
