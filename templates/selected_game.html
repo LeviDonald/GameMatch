@@ -1,7 +1,32 @@
 {% extends "layout.html" %}
 {% block content %}
-<h2>{{game_info[0]}}</h2>
+<h1 class="text_center text_shadow">{{game_info[0]}}</h1>
+<img src="{{game_info[4]}}" loading="lazy" class="image_center image_border">
 <br>
-<h3>Release date : </h3><p>{{game_info[1]}}</p>
-<h3>Price : </h3><p>${{game_info[2]}}</p>
+<br>
+{% if game_info[6] %}
+<h2 class="text_center"><u>WARNING</u></h2>
+<p><i>{{game_info[6]}}</i></p>
+{% endif %}
+<div class="same_line">
+    <h3 class="search_number">Release date - </h3><p class="search_number">{{game_info[1]}}</p>
+</div>
+<br>
+<br>
+<div class="same_line">
+    <h3 class="search_number">Price - </h3><p class="search_number">${{game_info[2]}}</p>
+</div>
+<br>
+<br>
+<div class="same_line">
+    <h3 class="search_number">Average playtime - </h3><p class="search_number">{{game_info[7]}}</p>
+</div>
+{% if game_info[5] %}
+<br>
+<br>
+<div class="same_line">
+    <h3 class="search_number">Website - </h3><p class="search_number"><a href="{{game_info[5]}}">Click here!</a></p>
+</div>
+{% endif %}
+
 {% endblock %}
