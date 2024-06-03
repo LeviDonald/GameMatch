@@ -9,24 +9,64 @@
 <p><i>{{game_info[6]}}</i></p>
 {% endif %}
 <div class="same_line">
-    <h3 class="search_number">Release date - </h3><p class="search_number">{{game_info[1]}}</p>
+    <h3 class="same_line">Release date - </h3><p class="same_line">{{game_info[1]}}</p>
 </div>
 <br>
 <br>
 <div class="same_line">
-    <h3 class="search_number">Price - </h3><p class="search_number">${{game_info[2]}}</p>
+    <h3 class="same_line">Price - </h3><p class="same_line">${{game_info[2]}}</p>
 </div>
 <br>
 <br>
 <div class="same_line">
-    <h3 class="search_number">Average playtime - </h3><p class="search_number">{{game_info[7]}}</p>
+    <h3 class="same_line">Developers - </h3>
+    {% for developer in developers %}
+    <p class="same_line">{{developer}} </p>
+    {% endfor %}
+    <p class="same_line">| </p>
+    <h3 class="same_line">Publishers - </h3>
+    {% for publisher in publishers %}
+    <p class="same_line">{{publisher}} </p>
+    {% endfor %}
+</div>
+<br>
+<br>
+<div class="same_line">
+    <h3 class="same_line">Average playtime - </h3><p class="same_line">{{game_info[7]}}</p>
 </div>
 {% if game_info[5] %}
 <br>
 <br>
 <div class="same_line">
-    <h3 class="search_number">Website - </h3><p class="search_number"><a href="{{game_info[5]}}">Click here!</a></p>
+    <h3 class="same_line">Website - </h3><p class="same_line"><a href="{{game_info[5]}}">Click here!</a></p>
 </div>
 {% endif %}
-
+<br>
+<br>
+{% if genres %}
+<div>
+    <h3>Genres:</h3>
+    {% for genre in genres %}
+    <p>{{genre}}</p>
+    {% endfor %}
+</div>
+{% endif %}
+<br>
+{% if categories %}
+<div>
+    <h3>Categories:</h3>
+    {% for category in categories %}
+    <p>{{category}}</p>
+    {% endfor %}
+</div>
+{% endif %}
+<br>
+{% if tags %}
+<div>
+    <h3>Tags:</h3>
+    {% for tag in tags %}
+    <p>{{tag}}</p>
+    {% endfor %}
+</div>
+{% endif %}
 {% endblock %}

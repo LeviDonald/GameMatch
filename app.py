@@ -12,31 +12,38 @@ SELECTED_GAME = "selected_game.html"
 ERROR404 = "404.html"
 LIMIT = 5
 
+
 # Easy query process function (TO DO: possibly convert into class)
 # Use when using SELECT queries :)
 def select_database(query, id=None):
-    conn = sqlite3.connect(DATABASE)
-    cursor = conn.cursor()
-    if id:
-        cursor.execute(query, id)
-    else:
-        cursor.execute(query)
-    results = cursor.fetchall()
-    conn.close()
-    return results
+    try:
+        conn = sqlite3.connect(DATABASE)
+        cursor = conn.cursor()
+        if id:
+            cursor.execute(query, id)
+        else:
+            cursor.execute(query)
+        results = cursor.fetchall()
+        conn.close()
+        return results
+    except Exception as e:
+        abort(404, e)
 
 
 # Use when using queries which include:
 # UPDATE, DROP, DELETE, INSERT and etc.
 def commit_database(query, id=None):
-    conn = sqlite3.connect(DATABASE)
-    cursor = conn.cursor()
-    if id:
-        cursor.execute(query, id)
-    else:
-        cursor.execute(query)
-    conn.commit()
-    conn.close()
+    try:
+        conn = sqlite3.connect(DATABASE)
+        cursor = conn.cursor()
+        if id:
+            cursor.execute(query, id)
+        else:
+            cursor.execute(query)
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        abort(404, e)
 
 
 # Manually convert ANSI data to UTF-8 (Japanese characters didn't load :( )
@@ -102,7 +109,7 @@ def games(page):
         if page > max_pages:
             abort(404, "This page doesn't exist!")
         # 0 - ID, 1 - Name, 2 - Image
-        game_info = select_database("SELECT game_id, name, header_image FROM games ORDER BY name LIMIT ? OFFSET ?;", (LIMIT, offset))
+        game_info = select_database("SELECT game_id, name, header_image FROM games ORDER BY name, average_playtime DESC LIMIT ? OFFSET ?;", (LIMIT, offset))
         if game_info:
             # for count, game in enumerate(game_info):
             #     game = list(game)
@@ -197,11 +204,11 @@ def search(page, search_text=None):
             search_text = request.args.get("search_text")
         if not search_text:
             return redirect(url_for('games', page=1))
-        offset = (page-1)*LIMIT
+        offset = (page-1) * LIMIT
         search_text_query = f'%{search_text}%'
         max_pages = select_database("SELECT COUNT(*) FROM games WHERE name LIKE ?;", (search_text_query,))
         max_pages = ceil(max_pages[0][0] / LIMIT)
-        search_results = select_database("SELECT game_id, name, header_image FROM games WHERE name LIKE ? ORDER BY name LIMIT ? OFFSET ?;", (search_text_query, LIMIT, offset))
+        search_results = select_database("SELECT game_id, name, header_image FROM games WHERE name LIKE ? ORDER BY average_playtime DESC LIMIT ? OFFSET ?;", (search_text_query, LIMIT, offset))
         # [0] - Game ID, [1] - Name, [2] - Image
         if search_results:
             # for count, game in enumerate(search_results):

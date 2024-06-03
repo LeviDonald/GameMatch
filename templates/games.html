@@ -1,6 +1,6 @@
 {% extends "layout.html" %}
 {% block content %}
-<h2><u>SEARCH</u> - <form method="get" action="/search/1" class="search_number"><input type="text" name="search_text" placeholder="Type something :)" min="1" max="100"></form></h2>
+<h2>SEARCH - <form method="get" action="/search/1" class="search_number"><input type="text" name="search_text" placeholder="Type something :)" min="1" max="100"></form></h2>
 <hr>
 {% if page != 1 and page != 0 %}
 <p><a href="/games/{{page-1}}">PREVIOUS</a>{% endif %} {% if page != max_pages %}<a href="/games/{{page+1}}">NEXT</a>{% endif %}</p>
