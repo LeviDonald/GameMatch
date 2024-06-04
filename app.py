@@ -46,6 +46,13 @@ def commit_database(query, id=None):
         abort(404, e)
 
 
+# Column names in 'games' table to sort by
+def sort_name(sort_style):
+    match sort_style:
+        case 1:
+            return "name"
+        case 2:
+            return "average_playtime"
 # Manually convert ANSI data to UTF-8 (Japanese characters didn't load :( )
 
 # def ansi_to_utf(table_name):
@@ -100,16 +107,17 @@ def home():
     return render_template(HOME)
 
 
-@app.route("/games/<int:page>")
-def games(page):
-    offset = (page-1)*LIMIT
+@app.route("/games/<int:page>/<int:sort_style>")
+def games(page, sort_style):
+    offset = (page-1) * LIMIT
     try:
         max_pages = select_database("SELECT COUNT(*) FROM games;")
         max_pages = ceil(max_pages[0][0] / LIMIT)
         if page > max_pages:
             abort(404, "This page doesn't exist!")
+        sort_name_ = sort_name(sort_style)
         # 0 - ID, 1 - Name, 2 - Image
-        game_info = select_database("SELECT game_id, name, header_image FROM games ORDER BY name, average_playtime DESC LIMIT ? OFFSET ?;", (LIMIT, offset))
+        game_info = select_database("SELECT game_id, name, header_image FROM games ORDER BY ? DESC LIMIT ? OFFSET ?;", (sort_name_, LIMIT, offset))
         if game_info:
             # for count, game in enumerate(game_info):
             #     game = list(game)
@@ -119,7 +127,7 @@ def games(page):
             #         genre_list.append(select_database("SELECT genre_name FROM genres WHERE genre_id = ?;", (genre[0],))[0][0])
             #     game.append(genre_list)
             #     game_info[count] = game
-            return render_template(GAMES, game_info=game_info, page=page, max_pages=max_pages)
+            return render_template(GAMES, game_info=game_info, page=page, max_pages=max_pages, sort_style=sort_style)
         else:
             abort(404, "This page doesn't exist!")
     except Exception as e:

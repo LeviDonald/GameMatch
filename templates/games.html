@@ -1,19 +1,27 @@
 {% extends "layout.html" %}
 {% block content %}
-<h2>SEARCH - <form method="get" action="/search/1" class="search_number"><input type="text" name="search_text" placeholder="Type something :)" min="1" max="100"></form></h2>
+<h2>SEARCH - <form method="get" action="/search/1/{{sort_style}}" class="search_number"><input type="text" name="search_text" placeholder="Type something :)" min="1" max="100"></form></h2>
+<form method="get" action="/games/{{page}}">
+    <label for="sort_style">Sort by - </label>
+    <select name="sort_style">
+        <option value="1">Alphabetically</option>
+        <option value="2">Popularity</option>
+    </select>
+    <input type="submit">
+</form>
 <hr>
 {% if page != 1 and page != 0 %}
-<p><a href="/games/{{page-1}}">PREVIOUS</a>{% endif %} {% if page != max_pages %}<a href="/games/{{page+1}}">NEXT</a>{% endif %}</p>
+<p><a href="/games/{{page-1}}/{{sort_style}}">PREVIOUS</a>{% endif %} {% if page != max_pages %}<a href="/games/{{page+1}}/{{sort_style}}">NEXT</a>{% endif %}</p>
 <p><form method="get" action="/number_game" class="search_number"><input type="number" name="page_num" placeholder="{{page}}" min="1" max="{{max_pages}}"></form> / {{max_pages}}</p>
 <hr>
 {% for game in game_info %}
 <div class="games">
-    <h3><a href="/game/{{game[0]}}"><u><b>{{game[1]}}</b></u></a></h3>
+    <h3><a href="/game/{{game[0]}}/{{sort_style}}"><u><b>{{game[1]}}</b></u></a></h3>
     <img src="{{game[2]}}" loading=lazy>
     <hr>
 </div>
 {% endfor %}
 {% if page != 1 and page != 0 %}
-<p><a href="/games/{{page-1}}">PREVIOUS</a>{% endif %} {% if page != max_pages %}<a href="/games/{{page+1}}">NEXT</a>{% endif %}</p>
+<p><a href="/games/{{page-1}}/{{sort_style}}">PREVIOUS</a>{% endif %} {% if page != max_pages %}<a href="/games/{{page+1}}/{{sort_style}}">NEXT</a>{% endif %}</p>
 <p><form method="get" action="/number_game" class="search_number"><input type="number" name="page_num" placeholder="{{page}}" min="1" max="{{max_pages}}"></form> / {{max_pages}}</p>
 {% endblock %}
