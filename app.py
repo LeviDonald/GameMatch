@@ -52,7 +52,7 @@ def sort_name(sort_style):
         case 1:
             return "name"
         case 2:
-            return "average_playtime"
+            return "playtime"
 # Manually convert ANSI data to UTF-8 (Japanese characters didn't load :( )
 
 # def ansi_to_utf(table_name):
@@ -116,8 +116,10 @@ def games(page, sort_style):
         if page > max_pages:
             abort(404, "This page doesn't exist!")
         sort_name_ = sort_name(sort_style)
+        # As the ? substitution does not apply to column names, I have to change the column name manually
+        sql_query = "SELECT game_id, name, header_image FROM games ORDER BY %.8s DESC LIMIT ? OFFSET ?;" % sort_name_
         # 0 - ID, 1 - Name, 2 - Image
-        game_info = select_database("SELECT game_id, name, header_image FROM games ORDER BY ? DESC LIMIT ? OFFSET ?;", (sort_name_, LIMIT, offset))
+        game_info = select_database(sql_query, (LIMIT, offset))
         if game_info:
             # for count, game in enumerate(game_info):
             #     game = list(game)
@@ -139,7 +141,7 @@ def single_game(game_id):
     class game():
         def __init__(self, game_id):
             # Gets basic info from the games table
-            game_info = select_database("SELECT name, release_date, price, synopsis, header_image, website, notes, average_playtime FROM games WHERE game_id = ?;", (game_id,))[0]
+            game_info = select_database("SELECT name, release_date, price, synopsis, header_image, website, notes, playtime FROM games WHERE game_id = ?;", (game_id,))[0]
             self.name = game_info[0]
             self.date = game_info[1]
             self.price = game_info[2]
@@ -147,7 +149,7 @@ def single_game(game_id):
             self.header = game_info[4]
             self.website = game_info[5]
             self.notes = game_info[6]
-            self.average_playtime = game_info[7]
+            self.playtime = game_info[7]
             self.game_id = game_id
 
         # List of applicable tables :
@@ -164,7 +166,7 @@ def single_game(game_id):
                 return None
 
         def basic_info(self):
-            return [self.name, self.date, self.price, self.synopsis, self.header, self.website, self.notes, self.average_playtime]
+            return [self.name, self.date, self.price, self.synopsis, self.header, self.website, self.notes, self.playtime]
     selected_game = game(game_id)
     game_info = selected_game.basic_info()
     genres = selected_game.select_bridge('genre')
@@ -203,20 +205,24 @@ def number_search(search_text):
 
 # Searching for specific games using search box
 @app.route("/search/<int:page>", methods=['GET'])
-@app.route("/search/<int:page>/<string:search_text>", methods=['GET'])
-def search(page, search_text=None):
+@app.route("/search/<int:page>/<string:search_text>/<int:sort_style>", methods=['GET'])
+def search(page, search_text=None, sort_style=None):
     try:
         if search_text:
             search_text = search_text
+            sort_style = sort_style
         elif request.method == "GET":
             search_text = request.args.get("search_text")
+            sort_style = request.args.get("sort_style")
         if not search_text:
-            return redirect(url_for('games', page=1))
+            return redirect(url_for('games', page=1, sort_style=sort_style))
         offset = (page-1) * LIMIT
+        sort_name_ = sort_name(sort_style)
         search_text_query = f'%{search_text}%'
         max_pages = select_database("SELECT COUNT(*) FROM games WHERE name LIKE ?;", (search_text_query,))
         max_pages = ceil(max_pages[0][0] / LIMIT)
-        search_results = select_database("SELECT game_id, name, header_image FROM games WHERE name LIKE ? ORDER BY average_playtime DESC LIMIT ? OFFSET ?;", (search_text_query, LIMIT, offset))
+        sql_query = "SELECT game_id, name, header_image FROM games WHERE name LIKE ? ORDER BY %.8s DESC LIMIT ? OFFSET ?;" % sort_name_
+        search_results = select_database(sql_query, (search_text_query, LIMIT, offset))
         # [0] - Game ID, [1] - Name, [2] - Image
         if search_results:
             # for count, game in enumerate(search_results):
@@ -227,9 +233,9 @@ def search(page, search_text=None):
             #         genre_list.append(select_database("SELECT genre_name FROM genres WHERE genre_id = ?;", (genre[0],))[0][0])
             #     game.append(genre_list)
             #     search_results[count] = game
-            return render_template(SEARCH_GAMES, game_info=search_results, page=page, max_pages=max_pages, search_text=search_text)
+            return render_template(SEARCH_GAMES, game_info=search_results, page=page, max_pages=max_pages, search_text=search_text, sort_style=sort_style)
         else:
-            return render_template(SEARCH_GAMES, game_info=None, page=page, max_pages=max_pages, search_text=search_text)
+            return render_template(SEARCH_GAMES, game_info=None, page=page, max_pages=max_pages, search_text=search_text, sort_style=sort_style)
     except Exception as e:
         abort(404, e)
 
