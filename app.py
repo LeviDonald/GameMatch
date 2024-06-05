@@ -46,13 +46,6 @@ def commit_database(query, id=None):
         abort(404, e)
 
 
-# Column names in 'games' table to sort by
-def sort_name(sort_style):
-    match sort_style:
-        case 1:
-            return "name"
-        case 2:
-            return "playtime"
 # Manually convert ANSI data to UTF-8 (Japanese characters didn't load :( )
 
 # def ansi_to_utf(table_name):
@@ -107,17 +100,16 @@ def home():
     return render_template(HOME)
 
 
-@app.route("/games/<int:page>/<int:sort_style>")
-def games(page, sort_style):
+@app.route("/games/<int:page>/<string:sort_style>/<string:sort_asc>")
+def games(page, sort_style, sort_asc):
     offset = (page-1) * LIMIT
     try:
         max_pages = select_database("SELECT COUNT(*) FROM games;")
         max_pages = ceil(max_pages[0][0] / LIMIT)
         if page > max_pages:
             abort(404, "This page doesn't exist!")
-        sort_name_ = sort_name(sort_style)
         # As the ? substitution does not apply to column names, I have to change the column name manually
-        sql_query = "SELECT game_id, name, header_image FROM games ORDER BY %.8s DESC LIMIT ? OFFSET ?;" % sort_name_
+        sql_query = "SELECT game_id, name, header_image FROM games ORDER BY %.8s %.4s LIMIT ? OFFSET ?;" % (sort_style, sort_asc)
         # 0 - ID, 1 - Name, 2 - Image
         game_info = select_database(sql_query, (LIMIT, offset))
         if game_info:
@@ -129,7 +121,7 @@ def games(page, sort_style):
             #         genre_list.append(select_database("SELECT genre_name FROM genres WHERE genre_id = ?;", (genre[0],))[0][0])
             #     game.append(genre_list)
             #     game_info[count] = game
-            return render_template(GAMES, game_info=game_info, page=page, max_pages=max_pages, sort_style=sort_style)
+            return render_template(GAMES, game_info=game_info, page=page, max_pages=max_pages, sort_style=sort_style, sort_asc=sort_asc)
         else:
             abort(404, "This page doesn't exist!")
     except Exception as e:
@@ -178,50 +170,52 @@ def single_game(game_id):
 
 
 # Gateway for page changes, gets page num and redirects back to 'games'
-@app.route("/number_game")
-def number_game():
+@app.route("/number_game/<string:sort_style>/<string:sort_asc>")
+def number_game(sort_style, sort_asc):
     try:
         if request.method == "POST":
             search_number = request.form.get("page_num")
         else:
             search_number = request.args.get("page_num")
-        return redirect(url_for('games', page=search_number))
+        return redirect(url_for('games', page=search_number, sort_style=sort_style, sort_asc=sort_asc))
     except Exception as e:
         abort(404, e)
 
 
 # Gateway for page changes, gets page num and redirects back to 'search'
-@app.route("/number_search/<string:search_text>")
-def number_search(search_text):
+@app.route("/number_search/<string:search_text>/<string:sort_style>/<string:sort_asc>")
+def number_search(search_text, sort_style, sort_asc):
     try:
         if request.method == "POST":
             search_number = request.form.get("page_num")
         else:
             search_number = request.args.get("page_num")
-        return redirect(url_for('search', page=search_number, search_text=search_text))
+        return redirect(url_for('search', page=search_number, search_text=search_text, sort_style=sort_style, sort_asc=sort_asc))
     except Exception as e:
         abort(404, e)
 
 
 # Searching for specific games using search box
 @app.route("/search/<int:page>", methods=['GET'])
-@app.route("/search/<int:page>/<string:search_text>/<int:sort_style>", methods=['GET'])
-def search(page, search_text=None, sort_style=None):
-    try:
+@app.route("/search/<int:page>/<string:search_text>/<string:sort_style>/<string:sort_asc>", methods=['GET'])
+def search(page, search_text=None, sort_style=None, sort_asc=None):
+    # try:
         if search_text:
             search_text = search_text
             sort_style = sort_style
+            sort_asc = sort_asc
         elif request.method == "GET":
             search_text = request.args.get("search_text")
             sort_style = request.args.get("sort_style")
+            sort_asc = request.args.get("sort_asc")
         if not search_text:
-            return redirect(url_for('games', page=1, sort_style=sort_style))
+            return redirect(url_for('games', page=1, sort_style=sort_style, sort_asc=sort_asc))
         offset = (page-1) * LIMIT
-        sort_name_ = sort_name(sort_style)
         search_text_query = f'%{search_text}%'
         max_pages = select_database("SELECT COUNT(*) FROM games WHERE name LIKE ?;", (search_text_query,))
         max_pages = ceil(max_pages[0][0] / LIMIT)
-        sql_query = "SELECT game_id, name, header_image FROM games WHERE name LIKE ? ORDER BY %.8s DESC LIMIT ? OFFSET ?;" % sort_name_
+        sql_query = "SELECT game_id, name, header_image FROM games WHERE name LIKE ? ORDER BY %.8s %.4s LIMIT ? OFFSET ?;" % (sort_style, sort_asc)
+        print(sql_query)
         search_results = select_database(sql_query, (search_text_query, LIMIT, offset))
         # [0] - Game ID, [1] - Name, [2] - Image
         if search_results:
@@ -233,11 +227,11 @@ def search(page, search_text=None, sort_style=None):
             #         genre_list.append(select_database("SELECT genre_name FROM genres WHERE genre_id = ?;", (genre[0],))[0][0])
             #     game.append(genre_list)
             #     search_results[count] = game
-            return render_template(SEARCH_GAMES, game_info=search_results, page=page, max_pages=max_pages, search_text=search_text, sort_style=sort_style)
+            return render_template(SEARCH_GAMES, game_info=search_results, page=page, max_pages=max_pages, search_text=search_text, sort_style=sort_style, sort_asc=sort_asc)
         else:
-            return render_template(SEARCH_GAMES, game_info=None, page=page, max_pages=max_pages, search_text=search_text, sort_style=sort_style)
-    except Exception as e:
-        abort(404, e)
+            return render_template(SEARCH_GAMES, game_info=None, page=page, max_pages=max_pages, search_text=search_text, sort_style=sort_style, sort_asc=sort_asc)
+    # except Exception as e:
+    #     abort(404, e)
 
 
 if __name__ == "__main__":

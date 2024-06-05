@@ -1,10 +1,20 @@
 {% extends "layout.html" %}
 {% block content %}
-<h2>SEARCH - <form method="get" action="/search/1" class="search_number"><input type="text" name="search_text" placeholder="Type something :)" min="1" max="100"></form></h2>
-<hr>
+<h2>SEARCH - </h2><form method="get" action="/search/1" class="search_number">
+    <input type="text" name="search_text" placeholder="Type something :)" min="1" max="100">
+    <label for="sort_style">Sort by - </label>
+    <select name="sort_style">
+        <option value="name" {% if sort_style == 'name' %}selected{% endif %}>Alphabetically</option>
+        <option value="playtime" {% if sort_style == 'playtime' %}selected{% endif %}>Popularity</option>
+    </select>
+    <select name="sort_asc">
+        <option value="{% if sort_style == 'playtime'%}DESC{% else %}ASC{% endif %}" {% if sort_asc == 'ASC' %}selected{% endif %}>Ascending</option>
+        <option value="{% if sort_style == 'playtime'%}ASC{% else %}DESC{% endif %}" {% if sort_asc == 'DESC' %}selected{% endif %}>Descending</option>
+    </select>
+</form></h2>
 {% if page != 1 and page != 0 %}
-<p><a href="/search/{{page-1}}/{{search_text}}">PREVIOUS</a>{% endif %} {% if page != max_pages %}<a href="/search/{{page+1}}/{{search_text}}">NEXT</a>{% endif %}</p>
-<p><form method="get" action="/number_search/{{search_text}}" class="search_number"><input type="number" name="page_num" placeholder="{{page}}" min="1" max="{{max_pages}}"></form> / {{max_pages}}</p>
+<p><a href="/search/{{page-1}}/{{search_text}}/{{sort_style}}/{{sort_asc}}">PREVIOUS</a>{% endif %} {% if page != max_pages %}<a href="/search/{{page+1}}/{{search_text}}/{{sort_style}}/{{sort_asc}}">NEXT</a>{% endif %}</p>
+<p><form method="get" action="/number_search/{{search_text}}/{{sort_style}}/{{sort_asc}}" class="search_number"><input type="number" name="page_num" placeholder="{{page}}" min="1" max="{{max_pages}}"></form> / {{max_pages}}</p>
 <hr>
 {% if game_info != None %}
     {% for game in game_info %}
@@ -19,6 +29,6 @@
     <p>(Try searching again!)</p>
 {% endif %}
 {% if page != 1 and page != 0 %}
-<p><a href="/search/{{page-1}}/{{search_text}}">PREVIOUS</a>{% endif %} {% if page != max_pages %}<a href="/search/{{page+1}}/{{search_text}}">NEXT</a>{% endif %}</p>
-<p><form method="get" action="/number_search/{{search_text}}" class="search_number"><input type="number" name="page_num" placeholder="{{page}}" min="1" max="{{max_pages}}"></form> / {{max_pages}}</p>
+<p><a href="/search/{{page-1}}/{{search_text}}/{{sort_style}}/{{sort_asc}}">PREVIOUS</a>{% endif %} {% if page != max_pages %}<a href="/search/{{page+1}}/{{search_text}}/{{sort_style}}/{{sort_asc}}">NEXT</a>{% endif %}</p>
+<p><form method="get" action="/number_search/{{search_text}}/{{sort_style}}/{{sort_asc}}" class="search_number"><input type="number" name="page_num" placeholder="{{page}}" min="1" max="{{max_pages}}"></form> / {{max_pages}}</p>
 {% endblock %}
