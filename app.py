@@ -9,6 +9,8 @@ HOME = "home.html"
 GAMES = "games.html"
 SEARCH_GAMES = "search.html"
 SELECTED_GAME = "selected_game.html"
+LOGIN = "login.html"
+SIGNUP = "signup.html"
 ERROR404 = "404.html"
 LIMIT = 5
 
@@ -99,6 +101,9 @@ def error_404(exception):
 def home():
     return render_template(HOME)
 
+@app.route("/login")
+def user_login():
+    return render_template(LOGIN)
 
 @app.route("/games/<int:page>/<string:sort_style>/<string:sort_asc>")
 def games(page, sort_style, sort_asc):
