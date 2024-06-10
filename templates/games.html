@@ -10,8 +10,8 @@
         <option value="playtime" {% if sort_style == 'playtime' %}selected{% endif %}>Popularity</option>
     </select>
     <select name="sort_asc">
-        <option value="{% if sort_style == 'playtime'%}DESC{% else %}ASC{% endif %}" {% if sort_asc == 'ASC' %}selected{% endif %}>Ascending</option>
-        <option value="{% if sort_style == 'playtime'%}ASC{% else %}DESC{% endif %}" {% if sort_asc == 'DESC' %}selected{% endif %}>Descending</option>
+        <option value="{% if sort_style == 'playtime' %}DESC{% else %}ASC{% endif %}" {% if sort_asc == 'ASC' %}selected{% endif %}>Ascending</option>
+        <option value="{% if sort_style == 'playtime' %}ASC{% else %}DESC{% endif %}" {% if sort_asc == 'DESC' %}selected{% endif %}>Descending</option>
     </select>
 </form></h2>
 <hr>
@@ -23,8 +23,8 @@
 {% endif %}
 {% for game in game_info %}
 <div class="games">
-    <h3><a href="/game/{{game[0]}}"><u><b>{{game[1]}}</b></u></a></h3>
-    <img src="{{game[2]}}" loading=lazy>
+    <h3><a href="/game/{{game[0]}}"><u><b>{{game[1]}}</b></u></h3>
+    <img src="{{game[2]}}" loading=lazy></a>
 </div>
 <hr>
 {% endfor %}

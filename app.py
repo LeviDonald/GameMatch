@@ -204,7 +204,7 @@ def number_search(search_text, sort_style, sort_asc):
 @app.route("/search/<int:page>", methods=['GET'])
 @app.route("/search/<int:page>/<string:search_text>/<string:sort_style>/<string:sort_asc>", methods=['GET'])
 def search(page, search_text=None, sort_style=None, sort_asc=None):
-    # try:
+    try:
         if search_text:
             search_text = search_text
             sort_style = sort_style
@@ -219,8 +219,12 @@ def search(page, search_text=None, sort_style=None, sort_asc=None):
         search_text_query = f'%{search_text}%'
         max_pages = select_database("SELECT COUNT(*) FROM games WHERE name LIKE ?;", (search_text_query,))
         max_pages = ceil(max_pages[0][0] / LIMIT)
-        sql_query = "SELECT game_id, name, header_image FROM games WHERE name LIKE ? ORDER BY %.8s %.4s LIMIT ? OFFSET ?;" % (sort_style, sort_asc)
-        print(sql_query)
+        if sort_style == 'playtime':
+            if sort_asc == "ASC":
+                sort_asc_real = "DESC"
+            else:
+                sort_asc_real = "ASC"
+        sql_query = "SELECT game_id, name, header_image FROM games WHERE name LIKE ? ORDER BY %.8s %.4s LIMIT ? OFFSET ?;" % (sort_style, sort_asc_real)
         search_results = select_database(sql_query, (search_text_query, LIMIT, offset))
         # [0] - Game ID, [1] - Name, [2] - Image
         if search_results:
@@ -235,9 +239,14 @@ def search(page, search_text=None, sort_style=None, sort_asc=None):
             return render_template(SEARCH_GAMES, game_info=search_results, page=page, max_pages=max_pages, search_text=search_text, sort_style=sort_style, sort_asc=sort_asc)
         else:
             return render_template(SEARCH_GAMES, game_info=None, page=page, max_pages=max_pages, search_text=search_text, sort_style=sort_style, sort_asc=sort_asc)
-    # except Exception as e:
-    #     abort(404, e)
+    except Exception as e:
+        abort(404, e)
 
+
+@app.route("/login_process")
+def login_process():
+    if request.method == "POST":
+        pass
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -1,4 +1,20 @@
 {% extends "layout.html" %}
 {% block content %}
-<h2 class="image_center">Login</h2>
+<div class="text_center">
+    <h3 class="same_line"><b>~*~&nbsp;</b></h3>
+    <h1 class="same_line"><u>Login</u></h1>
+    <h3 class="same_line"><b>&nbsp;~*~</b></h3>
+</div>
+<br>
+<form action="/login_process" class="text_center">
+    <label for="username">Username : </label>
+    <input type="text" name="username">
+    <br>
+    <br>
+    <label for="password">Password : </label>
+    <input type="text" name="password">
+    <br>
+    <br>
+    <input type="submit">
+</form>
 {% endblock %}
