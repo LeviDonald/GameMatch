@@ -6,15 +6,17 @@
     <h3 class="same_line"><b>&nbsp;~*~</b></h3>
 </div>
 <br>
-<form action="/login_process" class="text_center">
-    <label for="username">Username : </label>
-    <input type="text" name="username">
-    <br>
-    <br>
-    <label for="password">Password : </label>
-    <input type="text" name="password">
-    <br>
-    <br>
-    <input type="submit">
+<form action="/login_process">
+    <div class="login_box">
+        <label for="username">Username : </label>
+        <input type="text" name="username" class="larger_text">
+        <br>
+        <br>
+        <label for="password">Password : </label>
+        <input type="text" name="password" class="larger_text">
+        <br>
+        <br>
+    </div>
+    <input type="submit" class="submit_button">
 </form>
 {% endblock %}
