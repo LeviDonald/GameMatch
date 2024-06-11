@@ -54,3 +54,7 @@ body {
     -ms-transform: translate(550%);
     transform: translate(550%);
 }
+
+.submit_button:hover {
+    background-color: khaki;
+}

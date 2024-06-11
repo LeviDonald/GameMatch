@@ -101,9 +101,15 @@ def error_404(exception):
 def home():
     return render_template(HOME)
 
+
 @app.route("/login")
 def user_login():
     return render_template(LOGIN)
+
+
+@app.route("/signup")
+def user_signup():
+    return render_template(SIGNUP)
 
 @app.route("/games/<int:page>/<string:sort_style>/<string:sort_asc>")
 def games(page, sort_style, sort_asc):

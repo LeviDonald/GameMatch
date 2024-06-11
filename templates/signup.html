@@ -2,18 +2,22 @@
 {% block content %}
 <div class="text_center">
     <h3 class="same_line"><b>~*~&nbsp;</b></h3>
-    <h1 class="same_line"><u>Login</u></h1>
+    <h1 class="same_line"><u>Sign up</u></h1>
     <h3 class="same_line"><b>&nbsp;~*~</b></h3>
     <h5>(No special characters in username)</h5>
 </div>
 <br>
-<form action="/login_process">
+<form action="/signup_process">
     <div class="login_box">
         <label for="username">Username : </label>
         <input type="text" name="username" class="larger_text" maxlength="20" pattern="^[A-Za-z0-9]{1,25}$" title="Don't use special characters!">
         <br>
         <br>
         <label for="password">Password : </label>
+        <input type="password" name="password" class="larger_text" maxlength="20" pattern=".{6,}" title="6 or more characters!">
+        <br>
+        <br>
+        <label for="password">Re-enter password : </label>
         <input type="password" name="password" class="larger_text" maxlength="20" pattern=".{6,}" title="6 or more characters!">
         <br>
         <br>
