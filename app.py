@@ -1,6 +1,7 @@
 from flask import Flask, render_template, abort, url_for, request, redirect
 import sqlite3
 from math import ceil
+from OpenSSL import crypto
 
 app = Flask(__name__)
 
@@ -14,7 +15,7 @@ SIGNUP = "signup.html"
 ERROR404 = "404.html"
 LIMIT = 5
 
-
+print(crypto.PKey().generate_key(crypto.TYPE_RSA, 1024))
 # Easy query process function (TO DO: possibly convert into class)
 # Use when using SELECT queries :)
 def select_database(query, id=None):
@@ -230,6 +231,8 @@ def search(page, search_text=None, sort_style=None, sort_asc=None):
                 sort_asc_real = "DESC"
             else:
                 sort_asc_real = "ASC"
+        else:
+            sort_asc_real = sort_asc
         sql_query = "SELECT game_id, name, header_image FROM games WHERE name LIKE ? ORDER BY %.8s %.4s LIMIT ? OFFSET ?;" % (sort_style, sort_asc_real)
         search_results = select_database(sql_query, (search_text_query, LIMIT, offset))
         # [0] - Game ID, [1] - Name, [2] - Image
