@@ -1,7 +1,7 @@
 from flask import Flask, render_template, abort, url_for, request, redirect
 import sqlite3
 from math import ceil
-from OpenSSL import crypto
+from werkzeug import security
 
 app = Flask(__name__)
 
@@ -15,7 +15,7 @@ SIGNUP = "signup.html"
 ERROR404 = "404.html"
 LIMIT = 5
 
-print(crypto.PKey().generate_key(crypto.TYPE_RSA, 1024))
+
 # Easy query process function (TO DO: possibly convert into class)
 # Use when using SELECT queries :)
 def select_database(query, id=None):
@@ -110,7 +110,7 @@ def user_login():
 
 @app.route("/signup")
 def user_signup():
-    return render_template(SIGNUP)
+    return render_template(SIGNUP, error_msg=None)
 
 @app.route("/games/<int:page>/<string:sort_style>/<string:sort_asc>")
 def games(page, sort_style, sort_asc):
@@ -186,7 +186,7 @@ def single_game(game_id):
 def number_game(sort_style, sort_asc):
     try:
         if request.method == "POST":
-            search_number = request.form.get("page_num")
+            search_number = request.form["page_num"]
         else:
             search_number = request.args.get("page_num")
         return redirect(url_for('games', page=search_number, sort_style=sort_style, sort_asc=sort_asc))
@@ -199,7 +199,7 @@ def number_game(sort_style, sort_asc):
 def number_search(search_text, sort_style, sort_asc):
     try:
         if request.method == "POST":
-            search_number = request.form.get("page_num")
+            search_number = request.form["page_num"]
         else:
             search_number = request.args.get("page_num")
         return redirect(url_for('search', page=search_number, search_text=search_text, sort_style=sort_style, sort_asc=sort_asc))
@@ -250,6 +250,21 @@ def search(page, search_text=None, sort_style=None, sort_asc=None):
             return render_template(SEARCH_GAMES, game_info=None, page=page, max_pages=max_pages, search_text=search_text, sort_style=sort_style, sort_asc=sort_asc)
     except Exception as e:
         abort(404, e)
+
+
+@app.route('/signup_process', methods=["POST"])
+def signup_process():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+        repassword = request.form["repassword"]
+    else:
+        username = request.args.get("username")
+        password = request.args.get("password")
+        repassword = request.args.get("repassword")
+    if not username and not password and not repassword:
+        return redirect(url_for("user_signup", error_message="(Please fill out all of the boxes!)"))
+    return redirect(url_for("home"))
 
 
 @app.route("/login_process")
