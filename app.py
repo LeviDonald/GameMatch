@@ -1,4 +1,4 @@
-from flask import Flask, render_template, abort, url_for, request, redirect
+from flask import Flask, render_template, abort, url_for, request, redirect, flash
 import sqlite3
 from math import ceil
 from werkzeug import security
@@ -14,6 +14,8 @@ LOGIN = "login.html"
 SIGNUP = "signup.html"
 ERROR404 = "404.html"
 LIMIT = 5
+
+app.config['SECRET_KEY'] = '1e5ec2a58f909c4edbe7ffb3a7dcd84d'
 
 
 # Easy query process function (TO DO: possibly convert into class)
@@ -252,6 +254,7 @@ def search(page, search_text=None, sort_style=None, sort_asc=None):
         abort(404, e)
 
 
+# Redirects to here to do encryption and database insert when sign-up submit button is pressed
 @app.route('/signup_process', methods=["POST"])
 def signup_process():
     if request.method == "POST":
@@ -262,9 +265,18 @@ def signup_process():
         username = request.args.get("username")
         password = request.args.get("password")
         repassword = request.args.get("repassword")
-    if not username and not password and not repassword:
-        return redirect(url_for("user_signup", error_message="(Please fill out all of the boxes!)"))
-    return redirect(url_for("home"))
+    if username and password and repassword:
+        if password == repassword:
+            password = security.generate_password_hash(password, salt_length=16)
+            commit_database("INSERT INTO user (username, password) VALUES (?, ?);", (username, password))
+            flash("(Account successfully created!)")
+            return redirect(url_for("home"))
+        else:
+            flash("(Both passwords do not match!)")
+            return redirect(url_for("user_signup"))
+    else:
+        flash("(Please fill out all of the boxes!)")
+        return redirect(url_for("user_signup"))
 
 
 @app.route("/login_process")

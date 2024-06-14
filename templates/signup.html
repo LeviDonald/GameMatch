@@ -4,13 +4,17 @@
     <h3 class="same_line"><b>~*~&nbsp;</b></h3>
     <h1 class="same_line"><u>Sign up</u></h1>
     <h3 class="same_line"><b>&nbsp;~*~</b></h3>
-    <h5>(No special characters in username)</h5>
+    <h5>(No special characters / spaces in username)</h5>
 </div>
 <br>
+{% with error_message = get_flashed_messages() %}
 {% if error_message %}
-<p>{{error_message}}</p>
-<br>
-{% endif%}
+<div class="text_center">
+    <p>{{error_message[0]}}</p>
+    <br>
+</div>
+{% endif %}
+{% endwith %}
 <form action="/signup_process" method="post">
     <div class="login_box">
         <label for="username">Username : </label>
