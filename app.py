@@ -1,7 +1,7 @@
-from flask import Flask, render_template, abort, url_for, request, redirect, flash
+from flask import Flask, render_template, abort, url_for, request, redirect, flash, session
 import sqlite3
 from math import ceil
-from werkzeug import security
+from werkzeug.security import check_password_hash, generate_password_hash
 
 app = Flask(__name__)
 
@@ -267,7 +267,7 @@ def signup_process():
         repassword = request.args.get("repassword")
     if username and password and repassword:
         if password == repassword:
-            password = security.generate_password_hash(password, salt_length=16)
+            password = generate_password_hash(password, salt_length=16)
             commit_database("INSERT INTO user (username, password) VALUES (?, ?);", (username, password))
             flash("(Account successfully created!)")
             return redirect(url_for("home"))
@@ -279,10 +279,32 @@ def signup_process():
         return redirect(url_for("user_signup"))
 
 
-@app.route("/login_process")
+@app.route("/login_process", methods=["POST"])
 def login_process():
+    # Get POST information
     if request.method == "POST":
-        pass
+        username = request.form["username"]
+        password = request.form["password"]
+    else:
+        username = request.args.get("username")
+        password = request.args.get("password")
+    # Error prevention for 
+    if username and password:
+        password_hash = select_database("SELECT password FROM user WHERE username = ?;", (username,))
+        if password_hash:
+            print(password_hash)
+            if check_password_hash(password_hash, password):
+                session['username'] = username
+                return redirect(url_for('home'))
+            else:
+                flash("(Incorrect username / password!)")
+                return redirect(url_for('user_login'))
+        else:
+            flash("(Incorrect username / password!)")
+            return redirect(url_for('user_login'))
+    else:
+        flash("(Please fill out both boxes!)")
+        return redirect(url_for('user_login'))
 
 
 if __name__ == "__main__":
