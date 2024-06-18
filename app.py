@@ -2,6 +2,8 @@ from flask import Flask, render_template, abort, url_for, request, redirect, fla
 import sqlite3
 from math import ceil
 from werkzeug.security import check_password_hash, generate_password_hash
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import UserMixin, Column
 
 app = Flask(__name__)
 
@@ -16,6 +18,16 @@ ERROR404 = "404.html"
 LIMIT = 5
 
 app.config['SECRET_KEY'] = '1e5ec2a58f909c4edbe7ffb3a7dcd84d'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///gamematch.db'
+
+db = SQLAlchemy(app)
+
+
+class Users(db.Model, UserMixin):
+    id = db.Column()
+
+    def __init__(self):
+        self.id = id
 
 
 # Easy query process function (TO DO: possibly convert into class)
