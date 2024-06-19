@@ -3,7 +3,8 @@ import sqlite3
 from math import ceil
 from werkzeug.security import check_password_hash, generate_password_hash
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import UserMixin, Column
+from sqlalchemy import Column, Integer, String
+from flask_login import UserMixin
 
 app = Flask(__name__)
 
@@ -24,7 +25,9 @@ db = SQLAlchemy(app)
 
 
 class Users(db.Model, UserMixin):
-    id = db.Column()
+    __tablename__ = "user"
+    username = db.Column(db.String(20), primary_key=True)
+    password = db.Column(db.Integer, nullable=False)
 
     def __init__(self):
         self.id = id
