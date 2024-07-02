@@ -5,6 +5,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Column, Integer, String
 from flask_login import UserMixin
+from datetime import date
 
 app = Flask(__name__)
 
@@ -20,6 +21,7 @@ LIMIT = 5
 
 app.config['SECRET_KEY'] = '1e5ec2a58f909c4edbe7ffb3a7dcd84d'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///gamematch.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
@@ -28,9 +30,7 @@ class Users(db.Model, UserMixin):
     __tablename__ = "user"
     username = db.Column(db.String(20), primary_key=True)
     password = db.Column(db.Integer, nullable=False)
-
-    def __init__(self):
-        self.id = id
+    dob = db.Column(db.String, nullable=False)
 
 
 # Easy query process function (TO DO: possibly convert into class)
@@ -276,10 +276,14 @@ def signup_process():
         username = request.form["username"]
         password = request.form["password"]
         repassword = request.form["repassword"]
+        dob = request.form["dob"]
     else:
         username = request.args.get("username")
         password = request.args.get("password")
         repassword = request.args.get("repassword")
+        dob = request.args.get("dob")
+    print(dob)
+    exit()
     if username and password and repassword:
         if password == repassword:
             password = generate_password_hash(password, salt_length=16)

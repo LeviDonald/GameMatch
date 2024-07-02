@@ -38,6 +38,7 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: center;
+    row-gap: 10px;
     align-content: center;
     margin-left: 32vw;
     margin-right: 32vw;

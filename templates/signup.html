@@ -1,5 +1,24 @@
 {% extends "layout.html" %}
 {% block content %}
+<script>
+    // https://stackoverflow.com/questions/23671407/restrict-future-dates-in-html5-date-input
+    // Function from here :)
+    $(function(){
+    var dtToday = new Date();
+
+    var month = dtToday.getMonth() + 1;
+    var day = dtToday.getDate();
+    var year = dtToday.getFullYear();
+
+    if(month < 10)
+        month = '0' + month.toString();
+    if(day < 10)
+        day = '0' + day.toString();
+
+    var maxDate = year + '-' + month + '-' + day;    
+    $('#dob').attr('max', maxDate);
+    });
+</script>
 <div class="text_center">
     <h3 class="same_line"><b>~*~&nbsp;</b></h3>
     <h1 class="same_line"><u>Sign up</u></h1>
@@ -19,23 +38,15 @@
     <div class="login_box">
         <label for="username">Username : </label>
         <input type="text" name="username" class="larger_text" maxlength="20" pattern="^[A-Za-z0-9]{1,25}$" title="Don't use special characters!">
-        <br>
-        <br>
         <label for="password">Password : </label>
         <input type="password" name="password" class="larger_text" maxlength="20" pattern=".{6,}" title="6 or more characters!">
-        <br>
-        <br>
         <label for="password">Re-enter password : </label>
         <input type="password" name="repassword" class="larger_text" maxlength="20" pattern=".{6,}" title="6 or more characters!">
+        <label for="dob">Date of Birth : </label>
+        <input type="date" name="dob" class="larger_text" id="dob">
         <br>
         <br>
-        <span>
-            <select name="day" id="day"></select>
-            <select name="month" id="month"></select>
-            <select name="year" id="year"></select>
-        </span>
     </div>
     <input type="submit" class="submit_button">
 </form>
-<script src="dob.js"></script>
 {% endblock %}
