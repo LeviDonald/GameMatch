@@ -5,7 +5,8 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Column, Integer, String
 from flask_login import UserMixin
-from datetime import date
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 app = Flask(__name__)
 
@@ -272,19 +273,20 @@ def search(page, search_text=None, sort_style=None, sort_asc=None):
 # Redirects to here to do encryption and database insert when sign-up submit button is pressed
 @app.route('/signup_process', methods=["POST"])
 def signup_process():
-    if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
-        repassword = request.form["repassword"]
-        dob = request.form["dob"]
-    else:
-        username = request.args.get("username")
-        password = request.args.get("password")
-        repassword = request.args.get("repassword")
-        dob = request.args.get("dob")
-    print(dob)
-    exit()
-    if username and password and repassword:
+    try:
+        if request.method == "POST":
+            username = request.form["username"]
+            password = request.form["password"]
+            repassword = request.form["repassword"]
+            dob = request.form["dob"]
+        else:
+            username = request.args.get("username")
+            password = request.args.get("password")
+            repassword = request.args.get("repassword")
+            dob = request.args.get("dob")
+        print(datetime.today().strftime('%Y-%m-%d') - timedelta(years=18))
+        if dob == datetime.today().strftime('%Y-%m-%d'):
+            print("hi")
         if password == repassword:
             password = generate_password_hash(password, salt_length=16)
             commit_database("INSERT INTO user (username, password) VALUES (?, ?);", (username, password))
@@ -293,9 +295,8 @@ def signup_process():
         else:
             flash("(Both passwords do not match!)")
             return redirect(url_for("user_signup"))
-    else:
-        flash("(Please fill out all of the boxes!)")
-        return redirect(url_for("user_signup"))
+    except Exception as e:
+        abort(404, e)
 
 
 @app.route("/login_process", methods=["POST"])
