@@ -3,8 +3,7 @@ import sqlite3
 from math import ceil
 from werkzeug.security import check_password_hash, generate_password_hash
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import Column, Integer, String
-from flask_login import UserMixin
+from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
@@ -26,12 +25,14 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login_process'
 
 class Users(db.Model, UserMixin):
     __tablename__ = "user"
     username = db.Column(db.String(20), primary_key=True)
-    password = db.Column(db.Integer, nullable=False)
-    dob = db.Column(db.String, nullable=False)
+    password = db.Column(db.String(200), nullable=False)
 
 
 # Easy query process function (TO DO: possibly convert into class)
@@ -284,16 +285,21 @@ def signup_process():
             password = request.args.get("password")
             repassword = request.args.get("repassword")
             dob = request.args.get("dob")
-        print(datetime.today().strftime('%Y-%m-%d') - timedelta(years=18))
-        if dob == datetime.today().strftime('%Y-%m-%d'):
-            print("hi")
-        if password == repassword:
-            password = generate_password_hash(password, salt_length=16)
-            commit_database("INSERT INTO user (username, password) VALUES (?, ?);", (username, password))
-            flash("(Account successfully created!)")
-            return redirect(url_for("home"))
+        # If user is older than 17 years old then allow access into site
+        if dob <= (datetime.today() - relativedelta(years=17)).strftime("%Y-%m-%d"):
+            # Error prevention to prevent users from inputting the wrong password in the sign-up
+            if password == repassword:
+                password = generate_password_hash(password, salt_length=16)
+                user = Users(username=username, password=password)
+                db.session.add
+                commit_database("INSERT INTO user (username, password) VALUES (?, ?);", (username, password))
+                flash("(Account successfully created!)")
+                return redirect(url_for("home"))
+            else:
+                flash("(Both passwords do not match!)")
+                return redirect(url_for("user_signup"))
         else:
-            flash("(Both passwords do not match!)")
+            flash("(Users aged 16 and below cannot access this site)")
             return redirect(url_for("user_signup"))
     except Exception as e:
         abort(404, e)
