@@ -15,9 +15,10 @@
 </div>
 {% endif %}
 {% endwith %}
-<form action="/login_process" method="post">
+<form method="POST">
     <div class="login_box">
-        <label for="username">Username : </label>
+        {{ form.hidden_tag() }}
+        {{ form.username.label }}
         <input type="text" name="username" class="larger_text" maxlength="20" pattern="^[A-Za-z0-9]{1,25}$" title="Don't use special characters!" required>
         <br>
         <br>

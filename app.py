@@ -6,6 +6,9 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
+from flask_wtf import FlaskForm
+from wtforms import StringField, SubmitField, PasswordField
+from wtforms.validators import DataRequired, Length, EqualTo
 
 app = Flask(__name__)
 
@@ -28,11 +31,6 @@ db = SQLAlchemy(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login_process'
-
-class Users(db.Model, UserMixin):
-    __tablename__ = "user"
-    username = db.Column(db.String(20), primary_key=True)
-    password = db.Column(db.String(200), nullable=False)
 
 
 # Easy query process function (TO DO: possibly convert into class)
@@ -112,6 +110,21 @@ def remove_bad_games(ids, name):
 # print("don")
 
 
+class Users(db.Model, UserMixin):
+    __tablename__ = "user"
+    username = db.Column(db.String(20), primary_key=True)
+    password = db.Column(db.String(200), nullable=False)
+
+
+class LoginForm(FlaskForm):
+    username = StringField("Username", validators=[DataRequired(), Length(min=1, max=20, message="Must be within 1-20 characters")])
+    password = PasswordField("Password", validators=[DataRequired(), Length(min=1, max=20, message="Must be within 1-20 characters")])
+    submit = SubmitField("Submit")
+
+
+@login_manager.user_loader
+
+
 @app.errorhandler(404)
 def error_404(exception):
     return render_template(ERROR404, exception=exception)
@@ -124,7 +137,8 @@ def home():
 
 @app.route("/login")
 def user_login():
-    return render_template(LOGIN)
+    form = LoginForm()
+    return render_template(LOGIN, form=form)
 
 
 @app.route("/signup")
