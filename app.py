@@ -7,7 +7,7 @@ from flask_login import UserMixin, login_user, LoginManager, login_required, log
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, PasswordField
+from wtforms import StringField, SubmitField, PasswordField, DateField
 from wtforms.validators import DataRequired, Length, EqualTo
 
 app = Flask(__name__)
@@ -30,7 +30,7 @@ db = SQLAlchemy(app)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = 'login_process'
+login_manager.login_view = 'login'
 
 
 # Easy query process function (TO DO: possibly convert into class)
@@ -122,6 +122,14 @@ class LoginForm(FlaskForm):
     submit = SubmitField("Submit")
 
 
+class SignForm(FlaskForm):
+    username = username = StringField("Username", validators=[DataRequired(), Length(min=1, max=20, message="Must be within 1-20 characters")])
+    password = PasswordField("Password", validators=[DataRequired(), Length(min=6, max=20, message="Must be within 6-20 characters"), EqualTo('confirm', message="Both password and reconfirm password must be the same")])
+    confirm = password = PasswordField("Password", validators=[DataRequired(), Length(min=6, max=20,)])
+    dob = DateField('D.O.B', validators=[DataRequired()])
+    submit = SubmitField("Submit")
+
+
 @login_manager.user_loader
 
 
@@ -135,15 +143,25 @@ def home():
     return render_template(HOME)
 
 
-@app.route("/login")
-def user_login():
+@app.route("/login", methods=["POST", "GET"])
+def login():
     form = LoginForm()
+    if form.validate_on_submit():
+        return redirect(url_for("home"))
     return render_template(LOGIN, form=form)
 
 
-@app.route("/signup")
-def user_signup():
-    return render_template(SIGNUP, error_msg=None)
+@app.route("/signup", methods=["POST", "GET"])
+def signup():
+    form = SignForm()
+    if form.validate_on_submit():
+        user = Users()
+        user.username = form.username.data
+        user.password = generate_password_hash(form.password.data, salt_length=16)
+        db.session.add(user)
+        db.session.commit()
+        print(form.dob.data)
+    return render_template(SIGNUP, error_msg=None, form=form)
 
 @app.route("/games/<int:page>/<string:sort_style>/<string:sort_asc>")
 def games(page, sort_style, sort_asc):

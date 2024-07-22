@@ -19,14 +19,15 @@
     <div class="login_box">
         {{ form.hidden_tag() }}
         {{ form.username.label }}
-        <input type="text" name="username" class="larger_text" maxlength="20" pattern="^[A-Za-z0-9]{1,25}$" title="Don't use special characters!" required>
+        {{ form.username }}
         <br>
         <br>
-        <label for="password">Password : </label>
-        <input type="password" name="password" class="larger_text" maxlength="20" pattern=".{6,}" title="6 or more characters!" required>
+        {{ form.password.label }}
+        {{ form.password }}
         <br>
         <br>
+        {{ form.submit.label }}
+        {{ form.submit }}
     </div>
-    <input type="submit" class="submit_button">
 </form>
 {% endblock %}
