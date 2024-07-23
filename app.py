@@ -133,9 +133,9 @@ class SignForm(FlaskForm):
 @login_manager.user_loader
 
 
-# @app.errorhandler(404)
-# def error_404(exception):
-#     return render_template(ERROR404, exception=exception)
+@app.errorhandler(404)
+def error_404(exception):
+    return render_template(ERROR404, exception=exception)
 
 
 @app.route("/")
@@ -156,8 +156,8 @@ def signup():
     form = SignForm()
     if form.validate_on_submit():
         dob = form.dob.data
-        print(dob)
-        if dob <= (datetime.today() - relativedelta(years=17)).strftime("%Y-%m-%d"):
+        # dob = datetime.strptime(dob, '%y')
+        if dob <= (datetime.today() - relativedelta(years=17)).date():
             user = Users()
             user.username = form.username.data
             user.password = generate_password_hash(form.password.data, salt_length=16)
@@ -165,9 +165,10 @@ def signup():
             db.session.commit()
             return redirect(url_for('home'))
         else:
-            flash("You must be older than 16 and below to join this website :(")
+            flash("You must be older than 16 and below to join this website :'(")
             return redirect(url_for('home'))
     return render_template(SIGNUP, error_msg=None, form=form)
+
 
 @app.route("/games/<int:page>/<string:sort_style>/<string:sort_asc>")
 def games(page, sort_style, sort_asc):

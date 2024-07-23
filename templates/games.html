@@ -10,8 +10,8 @@
         <option value="playtime" {% if sort_style == 'playtime' %}selected{% endif %}>Popularity</option>
     </select>
     <select name="sort_asc">
-        <option value="{% if sort_style == 'playtime' %}DESC{% else %}ASC{% endif %}" {% if sort_asc == 'ASC' %}selected{% endif %}>Ascending</option>
-        <option value="{% if sort_style == 'playtime' %}ASC{% else %}DESC{% endif %}" {% if sort_asc == 'DESC' %}selected{% endif %}>Descending</option>
+        <option value="{% if sort_style == 'playtime' %}DESC{% else %}ASC{% endif %}" {% if sort_asc == 'DESC' %}selected{% endif %}>Ascending</option>
+        <option value="{% if sort_style == 'playtime' %}ASC{% else %}DESC" {% if sort_asc == 'ASC' %}selected{% endif %}>Descending</option>
     </select>
 </form></h2>
 <hr>
