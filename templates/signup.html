@@ -1,24 +1,5 @@
 {% extends "layout.html" %}
 {% block content %}
-<script>
-    // https://stackoverflow.com/questions/23671407/restrict-future-dates-in-html5-date-input
-    // Function from here :)
-    $(function(){
-    var dtToday = new Date();
-
-    var month = dtToday.getMonth() + 1;
-    var day = dtToday.getDate();
-    var year = dtToday.getFullYear();
-
-    if(month < 10)
-        month = '0' + month.toString();
-    if(day < 10)
-        day = '0' + day.toString();
-
-    var maxDate = year + '-' + month + '-' + day;    
-    $('#dob').attr('max', maxDate);
-    });
-</script>
 <div class="text_center">
     <h3 class="same_line"><b>~*~&nbsp;</b></h3>
     <h1 class="same_line"><u>Sign up</u></h1>
@@ -34,15 +15,32 @@
 </div>
 {% endif %}
 {% endwith %}
-<form action="/signup_process" method="post">
+<form method="POST">
     <div class="login_box">
+        {{ form.hidden_tag() }}
+        
         {{ form.username.label }}
         {{ form.username }}
+        {% for error in form.username.errors %}
+        {{ error }}
+        {% endfor %}
+        
         {{ form.password.label }}
         {{ form.password }}
+        {% for error in form.password.errors %}
+        {{ error }}
+        {% endfor %}
+        
         {{ form.confirm.label }}
         {{ form.confirm }}
-        {{ form.dob}}
+        {% for error in form.confirm.errors %}
+        {{ error }}
+        {% endfor %}
+        
+        {{ form.dob }}
+        {% for error in form.dob.errors %}
+        {{ error }}
+        {% endfor %}
         <br>
         <br>
     </div>

@@ -123,9 +123,9 @@ class LoginForm(FlaskForm):
 
 
 class SignForm(FlaskForm):
-    username = username = StringField("Username", validators=[DataRequired(), Length(min=1, max=20, message="Must be within 1-20 characters")])
+    username = StringField("Username", validators=[DataRequired(), Length(min=1, max=20, message="Must be within 1-20 characters")])
     password = PasswordField("Password", validators=[DataRequired(), Length(min=6, max=20, message="Must be within 6-20 characters"), EqualTo('confirm', message="Both password and reconfirm password must be the same")])
-    confirm = password = PasswordField("Password", validators=[DataRequired(), Length(min=6, max=20,)])
+    confirm = PasswordField("Reconfirm password", validators=[DataRequired(), Length(min=6, max=20,)])
     dob = DateField('D.O.B', validators=[DataRequired()])
     submit = SubmitField("Submit")
 
@@ -133,9 +133,9 @@ class SignForm(FlaskForm):
 @login_manager.user_loader
 
 
-@app.errorhandler(404)
-def error_404(exception):
-    return render_template(ERROR404, exception=exception)
+# @app.errorhandler(404)
+# def error_404(exception):
+#     return render_template(ERROR404, exception=exception)
 
 
 @app.route("/")
@@ -155,12 +155,18 @@ def login():
 def signup():
     form = SignForm()
     if form.validate_on_submit():
-        user = Users()
-        user.username = form.username.data
-        user.password = generate_password_hash(form.password.data, salt_length=16)
-        db.session.add(user)
-        db.session.commit()
-        print(form.dob.data)
+        dob = form.dob.data
+        print(dob)
+        if dob <= (datetime.today() - relativedelta(years=17)).strftime("%Y-%m-%d"):
+            user = Users()
+            user.username = form.username.data
+            user.password = generate_password_hash(form.password.data, salt_length=16)
+            db.session.add(user)
+            db.session.commit()
+            return redirect(url_for('home'))
+        else:
+            flash("You must be older than 16 and below to join this website :(")
+            return redirect(url_for('home'))
     return render_template(SIGNUP, error_msg=None, form=form)
 
 @app.route("/games/<int:page>/<string:sort_style>/<string:sort_asc>")
