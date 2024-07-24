@@ -8,7 +8,8 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, PasswordField, DateField
-from wtforms.validators import DataRequired, Length, EqualTo
+from wtforms.validators import DataRequired, Length, EqualTo, ValidationError
+import re
 
 app = Flask(__name__)
 
@@ -32,6 +33,9 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
+@login_manager.user_loader
+def load_user(username):
+    return Users.query.get(username)
 
 # Easy query process function (TO DO: possibly convert into class)
 # Use when using SELECT queries :)
@@ -108,6 +112,21 @@ def remove_bad_games(ids, name):
 # for i in bad_games:
 #     commit_database("DELETE FROM games WHERE game_id = ?;", (i[0],))
 # print("don")
+class UserCheck:
+    def __init__(self, banned, regex, message=None):
+        self.banned = banned
+        self.regex = regex
+
+        if not message:
+            message = 'Please choose another username'
+        self.message = message
+
+    def __call__(self, form, field):
+        p = re.compile(self.regex)
+        if field.data.lower() in (word.lower() for word in self.banned):
+            raise ValidationError(self.message)
+        if re.search(p, field.data.lower()):
+            raise ValidationError(self.message)
 
 
 class Users(db.Model, UserMixin):
@@ -117,14 +136,22 @@ class Users(db.Model, UserMixin):
 
 
 class LoginForm(FlaskForm):
-    username = StringField("Username", validators=[DataRequired(), Length(min=1, max=20, message="Must be within 1-20 characters")])
-    password = PasswordField("Password", validators=[DataRequired(), Length(min=1, max=20, message="Must be within 1-20 characters")])
+    username = StringField("Username", validators=[DataRequired(), Length(min=1, max=20, message="Must be within 1-20 characters"), UserCheck(message="Special characters not allowed",
+                  banned=['root', 'admin', 'sys', 'administrator'],
+                  regex="^(?=.*[-+_!@#$%^&*., ?])")])
+    password = PasswordField("Password", validators=[DataRequired(), Length(min=1, max=20, message="Must be within 1-20 characters"), UserCheck(message="Special characters not allowed",
+                  banned=['root', 'admin', 'sys', 'administrator'],
+                  regex="^(?=.*[-+_!@#$%^&*., ?])")])
     submit = SubmitField("Submit")
 
 
 class SignForm(FlaskForm):
-    username = StringField("Username", validators=[DataRequired(), Length(min=1, max=20, message="Must be within 1-20 characters")])
-    password = PasswordField("Password", validators=[DataRequired(), Length(min=6, max=20, message="Must be within 6-20 characters"), EqualTo('confirm', message="Both password and reconfirm password must be the same")])
+    username = StringField("Username", validators=[DataRequired(), Length(min=1, max=20, message="Must be within 1-20 characters"), UserCheck(message="Special characters not allowed",
+                  banned=['root', 'admin', 'sys', 'administrator'],
+                  regex="^(?=.*[-+_!@#$%^&*., ?])")])
+    password = PasswordField("Password", validators=[DataRequired(), Length(min=6, max=20, message="Must be within 6-20 characters"), EqualTo('confirm', message="Both password and reconfirm password must be the same"), UserCheck(message="Special characters not allowed",
+                  banned=['root', 'admin', 'sys', 'administrator'],
+                  regex="^(?=.*[-+_!@#$%^&*., ?])")])
     confirm = PasswordField("Reconfirm password", validators=[DataRequired(), Length(min=6, max=20,)])
     dob = DateField('D.O.B', validators=[DataRequired()])
     submit = SubmitField("Submit")
