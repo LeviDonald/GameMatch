@@ -116,9 +116,6 @@ class UserCheck:
     def __init__(self, banned, regex, message=None):
         self.banned = banned
         self.regex = regex
-
-        if not message:
-            message = 'Please choose another username'
         self.message = message
 
     def __call__(self, form, field):
@@ -133,6 +130,8 @@ class Users(db.Model, UserMixin):
     __tablename__ = "user"
     username = db.Column(db.String(20), primary_key=True)
     password = db.Column(db.String(200), nullable=False)
+    def get_id(self):
+        return self.username
 
 
 class LoginForm(FlaskForm):
@@ -158,11 +157,12 @@ class SignForm(FlaskForm):
 
 
 @login_manager.user_loader
+def load_user(user_id):
+    return Users.query.get(str(user_id))
 
-
-@app.errorhandler(404)
-def error_404(exception):
-    return render_template(ERROR404, exception=exception)
+# @app.errorhandler(404)
+# def error_404(exception):
+#     return render_template(ERROR404, exception=exception)
 
 
 @app.route("/")
@@ -174,6 +174,15 @@ def home():
 def login():
     form = LoginForm()
     if form.validate_on_submit():
+        user_info = Users.query.filter_by(username=form.username.data).first()
+        if user_info:
+            if check_password_hash(user_info.password, form.password.data):
+                login_user(user_info)
+                return redirect(url_for('home'))
+            else:
+                flash("Incorrect username / password")
+        else:
+            flash("Incorrect username / password")
         return redirect(url_for("home"))
     return render_template(LOGIN, form=form)
 
@@ -183,7 +192,6 @@ def signup():
     form = SignForm()
     if form.validate_on_submit():
         dob = form.dob.data
-        # dob = datetime.strptime(dob, '%y')
         if dob <= (datetime.today() - relativedelta(years=17)).date():
             user = Users()
             user.username = form.username.data
