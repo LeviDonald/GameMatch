@@ -19,7 +19,9 @@ GAMES = "games.html"
 SEARCH_GAMES = "search.html"
 SELECTED_GAME = "selected_game.html"
 LOGIN = "login.html"
+LOGOUT = "logout.html"
 SIGNUP = "signup.html"
+FAV_GENRE = "favourite_genres.html"
 ERROR404 = "404.html"
 LIMIT = 5
 
@@ -33,9 +35,6 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
-@login_manager.user_loader
-def load_user(username):
-    return Users.query.get(username)
 
 # Easy query process function (TO DO: possibly convert into class)
 # Use when using SELECT queries :)
@@ -70,30 +69,6 @@ def commit_database(query, id=None):
         abort(404, e)
 
 
-# Manually convert ANSI data to UTF-8 (Japanese characters didn't load :( )
-
-# def ansi_to_utf(table_name):
-#     # Get contents from argument table
-#     contents = select_database("SELECT * FROM {};".format(table_name))
-#     # Get all columns from specified table
-#     columns = select_database("PRAGMA table_info({});".format(table_name))
-#     column_table = []
-#     # Put column names into table
-#     for i in columns:
-#         column_table.append(i[1])
-#     # Sorting per each item in table
-#     for content in contents:
-#         # Sorting per each column of item
-#         for count, item in enumerate(content):
-#             # If not none, convert item text / int from ANSII to UTF-8 manually :)
-#             if item and type(item) is str:
-#                 item = item.encode("ANSI").decode("utf-8")
-#                 # Update table_name and set current column to utf-8 based text where game_id = current game's id
-#                 commit_database('UPDATE {} SET {} = "{}" WHERE {} = {};'.format(table_name, column_table[count], item, column_table[0], content[0]))
-
-# ansi_to_utf("developers")
-
-
 # Use to remove inappropriate tags / genres
 def remove_bad_games(ids, name):
     # Goes through each inappropriate ID
@@ -107,11 +82,11 @@ def remove_bad_games(ids, name):
         commit_database("DELETE FROM game_{} WHERE {}_id = ?".format(name, name), (i,))
 
 
-# Manually erase games that use bad words
-# bad_games = select_database("SELECT game_id FROM games WHERE notes LIKE '%(BAD WORD GOES HERE)%';")
-# for i in bad_games:
-#     commit_database("DELETE FROM games WHERE game_id = ?;", (i[0],))
-# print("don")
+def id_to_value(db_table):
+    pass
+
+
+# Raises a validation error if password / username uses special characters
 class UserCheck:
     def __init__(self, banned, regex, message=None):
         self.banned = banned
@@ -126,6 +101,7 @@ class UserCheck:
             raise ValidationError(self.message)
 
 
+# SQLAlchemy class for 'user' table
 class Users(db.Model, UserMixin):
     __tablename__ = "user"
     username = db.Column(db.String(20), primary_key=True)
@@ -134,37 +110,43 @@ class Users(db.Model, UserMixin):
         return self.username
 
 
+# WTForm for login.html
 class LoginForm(FlaskForm):
     username = StringField("Username", validators=[DataRequired(), Length(min=1, max=20, message="Must be within 1-20 characters"), UserCheck(message="Special characters not allowed",
                   banned=['root', 'admin', 'sys', 'administrator'],
-                  regex="^(?=.*[-+_!@#$%^&*., ?])")])
+                  regex="^(?=.*[-+_!@#$%^&*., ?]) ")])
     password = PasswordField("Password", validators=[DataRequired(), Length(min=1, max=20, message="Must be within 1-20 characters"), UserCheck(message="Special characters not allowed",
                   banned=['root', 'admin', 'sys', 'administrator'],
-                  regex="^(?=.*[-+_!@#$%^&*., ?])")])
+                  regex="^(?=.*[-+_!@#$%^&*., ?]) ")])
     submit = SubmitField("Submit")
 
 
+# WTForm for signup.html
 class SignForm(FlaskForm):
     username = StringField("Username", validators=[DataRequired(), Length(min=1, max=20, message="Must be within 1-20 characters"), UserCheck(message="Special characters not allowed",
                   banned=['root', 'admin', 'sys', 'administrator'],
-                  regex="^(?=.*[-+_!@#$%^&*., ?])")])
+                  regex="^(?=.*[-+_!@#$%^&*., ?]) ")])
     password = PasswordField("Password", validators=[DataRequired(), Length(min=6, max=20, message="Must be within 6-20 characters"), EqualTo('confirm', message="Both password and reconfirm password must be the same"), UserCheck(message="Special characters not allowed",
                   banned=['root', 'admin', 'sys', 'administrator'],
-                  regex="^(?=.*[-+_!@#$%^&*., ?])")])
+                  regex="^(?=.*[-+_!@#$%^&*., ?]) ")])
     confirm = PasswordField("Reconfirm password", validators=[DataRequired(), Length(min=6, max=20,)])
     dob = DateField('D.O.B', validators=[DataRequired()])
     submit = SubmitField("Submit")
 
 
+# Gets username upon user logging in
 @login_manager.user_loader
 def load_user(user_id):
     return Users.query.get(str(user_id))
 
-# @app.errorhandler(404)
-# def error_404(exception):
-#     return render_template(ERROR404, exception=exception)
+
+# Redirect here if error occurs
+@app.errorhandler(404)
+def error_404(exception):
+    return render_template(ERROR404, exception=exception)
 
 
+# Home page
 @app.route("/")
 def home():
     return render_template(HOME)
@@ -205,6 +187,13 @@ def signup():
     return render_template(SIGNUP, error_msg=None, form=form)
 
 
+@app.route("/logout")
+@login_required
+def logout():
+    logout_user()
+    return render_template(LOGOUT)
+
+
 @app.route("/games/<int:page>/<string:sort_style>/<string:sort_asc>")
 def games(page, sort_style, sort_asc):
     offset = (page-1) * LIMIT
@@ -218,14 +207,6 @@ def games(page, sort_style, sort_asc):
         # 0 - ID, 1 - Name, 2 - Image
         game_info = select_database(sql_query, (LIMIT, offset))
         if game_info:
-            # for count, game in enumerate(game_info):
-            #     game = list(game)
-            #     genres = select_database("SELECT genre_id FROM game_genre WHERE game_id = ?;", (game[0],))
-            #     genre_list = []
-            #     for genre in genres:
-            #         genre_list.append(select_database("SELECT genre_name FROM genres WHERE genre_id = ?;", (genre[0],))[0][0])
-            #     game.append(genre_list)
-            #     game_info[count] = game
             return render_template(GAMES, game_info=game_info, page=page, max_pages=max_pages, sort_style=sort_style, sort_asc=sort_asc)
         else:
             abort(404, "This page doesn't exist!")
@@ -274,7 +255,7 @@ def single_game(game_id):
     return render_template(SELECTED_GAME, game_info=game_info, genres=genres, tags=tags, categories=categories, developers=developers, publishers=publishers)
 
 
-# Gateway for page changes, gets page num and redirects back to 'games'
+# Middleman for page changes, gets page num and redirects back to 'games'
 @app.route("/number_game/<string:sort_style>/<string:sort_asc>")
 def number_game(sort_style, sort_asc):
     try:
@@ -328,16 +309,7 @@ def search(page, search_text=None, sort_style=None, sort_asc=None):
             sort_asc_real = sort_asc
         sql_query = "SELECT game_id, name, header_image FROM games WHERE name LIKE ? ORDER BY %.8s %.4s LIMIT ? OFFSET ?;" % (sort_style, sort_asc_real)
         search_results = select_database(sql_query, (search_text_query, LIMIT, offset))
-        # [0] - Game ID, [1] - Name, [2] - Image
         if search_results:
-            # for count, game in enumerate(search_results):
-            #     game = list(game)
-            #     genres = select_database("SELECT genre_id FROM game_genre WHERE game_id = ?;", (game[0],))
-            #     genre_list = []
-            #     for genre in genres:
-            #         genre_list.append(select_database("SELECT genre_name FROM genres WHERE genre_id = ?;", (genre[0],))[0][0])
-            #     game.append(genre_list)
-            #     search_results[count] = game
             return render_template(SEARCH_GAMES, game_info=search_results, page=page, max_pages=max_pages, search_text=search_text, sort_style=sort_style, sort_asc=sort_asc)
         else:
             return render_template(SEARCH_GAMES, game_info=None, page=page, max_pages=max_pages, search_text=search_text, sort_style=sort_style, sort_asc=sort_asc)
@@ -345,66 +317,32 @@ def search(page, search_text=None, sort_style=None, sort_asc=None):
         abort(404, e)
 
 
-# Redirects to here to do encryption and database insert when sign-up submit button is pressed
-@app.route('/signup_process', methods=["POST"])
-def signup_process():
-    try:
-        if request.method == "POST":
-            username = request.form["username"]
-            password = request.form["password"]
-            repassword = request.form["repassword"]
-            dob = request.form["dob"]
-        else:
-            username = request.args.get("username")
-            password = request.args.get("password")
-            repassword = request.args.get("repassword")
-            dob = request.args.get("dob")
-        # If user is older than 17 years old then allow access into site
-        if dob <= (datetime.today() - relativedelta(years=17)).strftime("%Y-%m-%d"):
-            # Error prevention to prevent users from inputting the wrong password in the sign-up
-            if password == repassword:
-                password = generate_password_hash(password, salt_length=16)
-                user = Users(username=username, password=password)
-                db.session.add
-                commit_database("INSERT INTO user (username, password) VALUES (?, ?);", (username, password))
-                flash("(Account successfully created!)")
-                return redirect(url_for("home"))
-            else:
-                flash("(Both passwords do not match!)")
-                return redirect(url_for("user_signup"))
-        else:
-            flash("(Users aged 16 and below cannot access this site)")
-            return redirect(url_for("user_signup"))
-    except Exception as e:
-        abort(404, e)
+# Displays all the games the user has tracked/favourited
+@app.route("/favourite_games/<string:username>")
+@login_required
+def favourite_games(username):
+    pass
 
 
-@app.route("/login_process", methods=["POST"])
-def login_process():
-    # Get POST information
-    if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
-    else:
-        username = request.args.get("username")
-        password = request.args.get("password")
-    # Error prevention for 
-    if username and password:
-        password_hash = select_database("SELECT password FROM user WHERE username = ?;", (username,))
-        if password_hash:
-            print(password_hash)
-            if check_password_hash(password_hash, password):
-                session['username'] = username
-                return redirect(url_for('home'))
-            else:
-                flash("(Incorrect username / password!)")
-                return redirect(url_for('user_login'))
-        else:
-            flash("(Incorrect username / password!)")
-            return redirect(url_for('user_login'))
-    else:
-        flash("(Please fill out both boxes!)")
-        return redirect(url_for('user_login'))
+@app.route("/favourite_genres/<string:username>")
+@login_required
+def favourite_genres(username):
+    all_genres = select_database("SELECT * FROM genres;")
+    favourites = select_database("SELECT genre_id FROM favourite_genres WHERE user_id = ?", (username,))
+
+    return render_template(FAV_GENRE)
+
+
+@app.route("/favourite_tags/<string:username>")
+@login_required
+def favourite_tags(username):
+    pass
+
+
+@app.route("/favourite_categories/<string:username>")
+@login_required
+def favourite_cat(username):
+    pass
 
 
 if __name__ == "__main__":
