@@ -3,6 +3,8 @@ import sqlite3
 from math import ceil
 from werkzeug.security import check_password_hash, generate_password_hash
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import ForeignKey
+from sqlalchemy.orm import relationship
 from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -21,7 +23,7 @@ SELECTED_GAME = "selected_game.html"
 LOGIN = "login.html"
 LOGOUT = "logout.html"
 SIGNUP = "signup.html"
-FAV_GENRE = "favourite_genres.html"
+FAV_GAME = "favourite_games.html"
 ERROR404 = "404.html"
 LIMIT = 5
 
@@ -109,6 +111,24 @@ class Users(db.Model, UserMixin):
     def get_id(self):
         return self.username
 
+
+class FavouriteGames(db.Model):
+    __tablename__ = "favourite_games"
+    user_id = db.Column(db.String(20), ForeignKey(Users.username))
+    game_id = db.Column(db.Integer(50), ForeignKey())
+
+
+class Games(db.Model):
+    __tablename__ = "games"
+    game_id = db.Column(db.Integer(50), primary_key=True)
+    name = db.Column(db.String(200), nullable=False)
+    release_date = db.Column(db.String(50))
+    required_age = db.Column(db.Integer(5))
+    price = db.Column(db.Numeric(10))
+    synopsis = db.Column(db.String(300))
+    header_image = db.Column(db.String(200))
+    website = db.Column(db.String(100))
+    notes = db.Column(db.)
 
 # WTForm for login.html
 class LoginForm(FlaskForm):
@@ -321,27 +341,6 @@ def search(page, search_text=None, sort_style=None, sort_asc=None):
 @app.route("/favourite_games/<string:username>")
 @login_required
 def favourite_games(username):
-    pass
-
-
-@app.route("/favourite_genres/<string:username>")
-@login_required
-def favourite_genres(username):
-    all_genres = select_database("SELECT * FROM genres;")
-    favourites = select_database("SELECT genre_id FROM favourite_genres WHERE user_id = ?", (username,))
-
-    return render_template(FAV_GENRE)
-
-
-@app.route("/favourite_tags/<string:username>")
-@login_required
-def favourite_tags(username):
-    pass
-
-
-@app.route("/favourite_categories/<string:username>")
-@login_required
-def favourite_cat(username):
     pass
 
 
