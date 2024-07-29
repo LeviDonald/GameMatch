@@ -108,27 +108,34 @@ class Users(db.Model, UserMixin):
     __tablename__ = "user"
     username = db.Column(db.String(20), primary_key=True)
     password = db.Column(db.String(200), nullable=False)
+    favourite_games = relationship("FavouriteGames")
+
     def get_id(self):
         return self.username
 
 
-class FavouriteGames(db.Model):
-    __tablename__ = "favourite_games"
-    user_id = db.Column(db.String(20), ForeignKey(Users.username))
-    game_id = db.Column(db.Integer(50), ForeignKey())
-
-
 class Games(db.Model):
     __tablename__ = "games"
-    game_id = db.Column(db.Integer(50), primary_key=True)
+    game_id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False)
     release_date = db.Column(db.String(50))
-    required_age = db.Column(db.Integer(5))
+    required_age = db.Column(db.Integer)
     price = db.Column(db.Numeric(10))
     synopsis = db.Column(db.String(300))
     header_image = db.Column(db.String(200))
     website = db.Column(db.String(100))
-    notes = db.Column(db.)
+    notes = db.Column(db.String(300))
+    playtime = db.Column(db.Integer)
+    movies = db.Column(db.String(300))
+    favourite_games = relationship("FavouriteGames", primary_join='')
+
+
+class FavouriteGames(db.Model):
+    __tablename__ = "favourite_games"
+    user_id = db.Column(db.String(20), ForeignKey("Users.username"))
+    game_id = db.Column(db.Integer, ForeignKey("Games.game_id"))
+    column_not_exist_in_db = db.Column(db.Integer, primary_key=True)
+
 
 # WTForm for login.html
 class LoginForm(FlaskForm):
@@ -202,7 +209,7 @@ def signup():
             db.session.commit()
             return redirect(url_for('home'))
         else:
-            flash("You must be older than 16 and below to join this website :'(")
+            flash("You must be older than 16 join this website :'(")
             return redirect(url_for('home'))
     return render_template(SIGNUP, error_msg=None, form=form)
 

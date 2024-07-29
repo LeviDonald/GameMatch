@@ -8,6 +8,9 @@
     <hr>
     <div>
         <p><a href="/">HOME</a> | <a href="/games/1/name/ASC">GAMES</a> | <a href="/login">LOGIN</a> | <a href="/signup">SIGN UP</a></p> 
+        {% if current_user.is_authenticated %}
+        <p>HI :)</p>
+        {% endif %}
     </div>
     <hr>
 </body>
