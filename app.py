@@ -3,8 +3,7 @@ import sqlite3
 from math import ceil
 from werkzeug.security import check_password_hash, generate_password_hash
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import ForeignKey
-from sqlalchemy.orm import relationship
+from sqlalchemy import create_engine
 from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -32,6 +31,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///gamematch.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
+
+epic_engine = create_engine('sqlite:///gamematch.db')
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -104,44 +105,58 @@ class UserCheck:
             raise ValidationError(self.message)
 
 
-# SQLAlchemy class for 'user' table
+# Setting up tables to be used with SQLAlchemy
 class Users(db.Model, UserMixin):
     __tablename__ = "user"
     username = db.Column(db.String, primary_key=True)
     password = db.Column(db.String, nullable=False)
+
     def get_id(self):
         return self.username
 
-# Setting up tables to be used with SQLAlchemy
+
 class FavouriteGames(db.Model):
-    __table__ = db.Table('favourite_games', db.metadata, autoload=True, autoload_with=db.engine)
+    __table__ = db.Table('favourite_games', db.metadata, autoload_with=epic_engine)
+
+
+class Games(db.Model):
+    __table__ = db.Table('games', db.metadata, autoload_with=epic_engine)
+
 
 class Categories(db.Model):
-    __table__ = db.Table('categorys', db.metadata, autoload=True, autoload_with=db.engine)
+    __table__ = db.Table('categorys', db.metadata, autoload_with=epic_engine)
+
 
 class Genres(db.Model):
-    __table__ = db.Table('genres', db.metadata, autoload=True, autoload_with=db.engine)
+    __table__ = db.Table('genres', db.metadata, autoload_with=epic_engine)
+
 
 class Publishers(db.Model):
-    __table__ = db.Table('publishers', db.metadata, autoload=True, autoload_with=db.engine)
+    __table__ = db.Table('publishers', db.metadata, autoload_with=epic_engine)
+
 
 class Tags(db.Model):
-    __table__ = db.Table('tags', db.metadata, autoload=True, autoload_with=db.engine)
+    __table__ = db.Table('tags', db.metadata, autoload_with=epic_engine)
+
 
 class Developers(db.Model):
-    __table__ = db.Table('developers', db.metadata, autoload=True, autoload_with=db.engine)
+    __table__ = db.Table('developers', db.metadata, autoload_with=epic_engine)
+
 
 class GameCat(db.Model):
-    __table__ = db.Table('game_category', db.metadata, autoload=True, autoload_with=db.engine)
+    __table__ = db.Table('game_category', db.metadata, autoload_with=epic_engine)
+
 
 class GameGen(db.Model):
-    __table__ = db.Table('game_genre', db.metadata, autoload=True, autoload_with=db.engine)
+    __table__ = db.Table('game_genre', db.metadata, autoload_with=epic_engine)
+
 
 class GamePub(db.Model):
-    __table__ = db.Table('game_publisher', db.metadata, autoload=True, autoload_with=db.engine)
+    __table__ = db.Table('game_publisher', db.metadata, autoload_with=epic_engine)
+
 
 class GameDev(db.Model):
-    __table__ = db.Table('game_developer', db.metadata, autoload=True, autoload_with=db.engine)
+    __table__ = db.Table('game_developer', db.metadata, autoload_with=epic_engine)
 
 
 # WTForm for login.html
@@ -209,18 +224,21 @@ def signup():
     if form.validate_on_submit():
         dob = form.dob.data
         if dob <= (datetime.today() - relativedelta(years=17)).date():
-            user = Users()
-            user.username = form.username.data
-            user.password = generate_password_hash(form.password.data, salt_length=16)
-            db.session.add(user)
-            db.session.commit()
-            login_user(user, remember=True)
-            print(current_user)
-            return redirect(url_for('home'))
+            user_check = Users.query.filter_by(username=form.username.data).first()
+            if user_check:
+                flash("This username has already been taken! Please use a different one.")
+            else:
+                user = Users()
+                user.username = form.username.data
+                user.password = generate_password_hash(form.password.data, salt_length=16)
+                db.session.add(user)
+                db.session.commit()
+                login_user(user, remember=True)
+                return redirect(url_for('home'))
         else:
             flash("You must be older than 16 to join this website :'(")
             return redirect(url_for('home'))
-    return render_template(SIGNUP, error_msg=None, form=form)
+    return render_template(SIGNUP, form=form)
 
 
 @app.route("/logout")
@@ -255,15 +273,17 @@ def single_game(game_id):
     class game():
         def __init__(self, game_id):
             # Gets basic info from the games table
-            game_info = select_database("SELECT name, release_date, price, synopsis, header_image, website, notes, playtime FROM games WHERE game_id = ?;", (game_id,))[0]
-            self.name = game_info[0]
-            self.date = game_info[1]
-            self.price = game_info[2]
-            self.synopsis = game_info[3]
-            self.header = game_info[4]
-            self.website = game_info[5]
-            self.notes = game_info[6]
-            self.playtime = game_info[7]
+            game_info = Games.query.filter(Games.game_id == game_id).first()
+            # game_info = select_database("SELECT name, release_date, price, synopsis, header_image, website, notes, playtime FROM games WHERE game_id = ?;", (game_id,))[0]
+            self.name = game_info.name
+            self.date = game_info.release_date
+            # SQLAlchemy annoyingly adds a bunch of random ending 0s to my NUMERIC values
+            self.price = round(game_info.price, 2)
+            self.synopsis = game_info.synopsis
+            self.header = game_info.header_image
+            self.website = game_info.website
+            self.notes = game_info.notes
+            self.playtime = game_info.playtime
             self.game_id = game_id
 
         # List of applicable tables :
