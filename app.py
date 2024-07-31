@@ -84,21 +84,22 @@ def remove_bad_games(ids, name):
         commit_database("DELETE FROM game_{} WHERE {}_id = ?".format(name, name), (i,))
 
 
-def id_to_value(db_table):
-    pass
-
-
 # Raises a validation error if password / username uses special characters
 class UserCheck:
+    # Get arguments that are given when first called
     def __init__(self, banned, regex, message=None):
         self.banned = banned
         self.regex = regex
         self.message = message
-
+    # Activates after initialisation
     def __call__(self, form, field):
+        # Turns argument bad characters into regex object
         p = re.compile(self.regex)
+        # Sets user input to lowercase and banned words to lowercase
         if field.data.lower() in (word.lower() for word in self.banned):
+            # If user input contains banned word, raise ValidationError
             raise ValidationError(self.message)
+        # If regex finds a banned character, raise ValidationError
         if re.search(p, field.data.lower()):
             raise ValidationError(self.message)
 
@@ -106,29 +107,42 @@ class UserCheck:
 # SQLAlchemy class for 'user' table
 class Users(db.Model, UserMixin):
     __tablename__ = "user"
-    username = db.Column(db.String(20), primary_key=True)
-    password = db.Column(db.String(200), nullable=False)
+    username = db.Column(db.String, primary_key=True)
+    password = db.Column(db.String, nullable=False)
     def get_id(self):
         return self.username
 
-
+# Setting up tables to be used with SQLAlchemy
 class FavouriteGames(db.Model):
-    __tablename__ = "favourite_games"
-    user_id = db.Column(db.String(20), ForeignKey(Users.username))
-    game_id = db.Column(db.Integer(50), ForeignKey())
+    __table__ = db.Table('favourite_games', db.metadata, autoload=True, autoload_with=db.engine)
 
+class Categories(db.Model):
+    __table__ = db.Table('categorys', db.metadata, autoload=True, autoload_with=db.engine)
 
-class Games(db.Model):
-    __tablename__ = "games"
-    game_id = db.Column(db.Integer(50), primary_key=True)
-    name = db.Column(db.String(200), nullable=False)
-    release_date = db.Column(db.String(50))
-    required_age = db.Column(db.Integer(5))
-    price = db.Column(db.Numeric(10))
-    synopsis = db.Column(db.String(300))
-    header_image = db.Column(db.String(200))
-    website = db.Column(db.String(100))
-    notes = db.Column(db.)
+class Genres(db.Model):
+    __table__ = db.Table('genres', db.metadata, autoload=True, autoload_with=db.engine)
+
+class Publishers(db.Model):
+    __table__ = db.Table('publishers', db.metadata, autoload=True, autoload_with=db.engine)
+
+class Tags(db.Model):
+    __table__ = db.Table('tags', db.metadata, autoload=True, autoload_with=db.engine)
+
+class Developers(db.Model):
+    __table__ = db.Table('developers', db.metadata, autoload=True, autoload_with=db.engine)
+
+class GameCat(db.Model):
+    __table__ = db.Table('game_category', db.metadata, autoload=True, autoload_with=db.engine)
+
+class GameGen(db.Model):
+    __table__ = db.Table('game_genre', db.metadata, autoload=True, autoload_with=db.engine)
+
+class GamePub(db.Model):
+    __table__ = db.Table('game_publisher', db.metadata, autoload=True, autoload_with=db.engine)
+
+class GameDev(db.Model):
+    __table__ = db.Table('game_developer', db.metadata, autoload=True, autoload_with=db.engine)
+
 
 # WTForm for login.html
 class LoginForm(FlaskForm):
@@ -179,7 +193,7 @@ def login():
         user_info = Users.query.filter_by(username=form.username.data).first()
         if user_info:
             if check_password_hash(user_info.password, form.password.data):
-                login_user(user_info)
+                login_user(user_info, remember=True)
                 return redirect(url_for('home'))
             else:
                 flash("Incorrect username / password")
@@ -200,9 +214,11 @@ def signup():
             user.password = generate_password_hash(form.password.data, salt_length=16)
             db.session.add(user)
             db.session.commit()
+            login_user(user, remember=True)
+            print(current_user)
             return redirect(url_for('home'))
         else:
-            flash("You must be older than 16 and below to join this website :'(")
+            flash("You must be older than 16 to join this website :'(")
             return redirect(url_for('home'))
     return render_template(SIGNUP, error_msg=None, form=form)
 

@@ -2,12 +2,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Navigatory Navigator (Alligator)</title>
 </head>
 <body>
     <hr>
     <div>
-        <p><a href="/">HOME</a> | <a href="/games/1/name/ASC">GAMES</a> | <a href="/login">LOGIN</a> | <a href="/signup">SIGN UP</a></p> 
+        <p><a href="/">HOME</a> | <a href="/games/1/name/ASC">GAMES</a> | <a href="/login">LOGIN</a> | <a href="/signup">SIGN UP</a> {% if current_user.is_authenticated %}<a href="/logout">Logout</a>{% endif %}</p> 
     </div>
     <hr>
 </body>
