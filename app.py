@@ -363,12 +363,17 @@ def search(page, search_text=None, sort_style=None, sort_asc=None):
                 sort_asc_real = "ASC"
         else:
             sort_asc_real = sort_asc
+        genres = Genres.query.all()
+        print(genres[0].genre_id)
+        categories = Categories.query.all()
+        tags = Tags.query.all()
+        print(genres)
         sql_query = "SELECT game_id, name, header_image FROM games WHERE name LIKE ? ORDER BY %.8s %.4s LIMIT ? OFFSET ?;" % (sort_style, sort_asc_real)
         search_results = select_database(sql_query, (search_text_query, LIMIT, offset))
         if search_results:
-            return render_template(SEARCH_GAMES, game_info=search_results, page=page, max_pages=max_pages, search_text=search_text, sort_style=sort_style, sort_asc=sort_asc)
+            return render_template(SEARCH_GAMES, game_info=search_results, page=page, max_pages=max_pages, search_text=search_text, sort_style=sort_style, sort_asc=sort_asc, genres=genres, categories=categories, tags=tags)
         else:
-            return render_template(SEARCH_GAMES, game_info=None, page=page, max_pages=max_pages, search_text=search_text, sort_style=sort_style, sort_asc=sort_asc)
+            return render_template(SEARCH_GAMES, game_info=None, page=page, max_pages=max_pages, search_text=search_text, sort_style=sort_style, sort_asc=sort_asc, genres=genres, categories=categories, tags=tags)
     except Exception as e:
         abort(404, e)
 
