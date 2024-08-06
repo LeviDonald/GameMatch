@@ -13,6 +13,27 @@
         <option value="ASC" {% if sort_asc == 'ASC' %}selected{% endif %}>Ascending</option>
         <option value="DESC" {% if sort_asc == 'DESC' %}selected{% endif %}>Descending</option>
     </select>
+    <fieldset>
+        <legend>Genres: </legend>
+            {% for genre in genres %}
+            <label for="{{genre.genre_name}}">{{genre.genre_name}}</label>
+            <input type="checkbox" name="{{genre.genre_name}}" value="{{genre.genre_id}}">
+            {% endfor %}
+    </fieldset>
+    <fieldset>
+        <legend>Tags: </legend>
+            {% for tag in tags %}
+            <label for="{{tag.tag_name}}">{{tag.tag_name}}</label>
+            <input type="checkbox" name="{{tag.tag_name}}" value="{{tag.tag_id}}">
+            {% endfor %}
+    </fieldset>
+    <fieldset>
+        <legend>Categories: </legend>
+            {% for category in categories %}
+            <label for="{{category.category_name}}">{{category.category_name}}</label>
+            <input type="checkbox" name="{{category.category_name}}" value="{{category.category_id}}">
+            {% endfor %}
+    </fieldset>
 </form></h2>
 <hr>
 {% if max_pages != 0 %}

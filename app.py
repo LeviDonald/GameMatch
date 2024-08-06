@@ -261,7 +261,10 @@ def games(page, sort_style, sort_asc):
         # 0 - ID, 1 - Name, 2 - Image
         game_info = select_database(sql_query, (LIMIT, offset))
         if game_info:
-            return render_template(GAMES, game_info=game_info, page=page, max_pages=max_pages, sort_style=sort_style, sort_asc=sort_asc)
+            genres = Genres.query.order_by("genre_name").all()
+            categories = Categories.query.order_by("category_name").all()
+            tags = Tags.query.order_by("tag_name").all()
+            return render_template(GAMES, game_info=game_info, page=page, max_pages=max_pages, sort_style=sort_style, sort_asc=sort_asc, genres=genres, categories=categories, tags=tags)
         else:
             abort(404, "This page doesn't exist!")
     except Exception as e:
@@ -278,7 +281,7 @@ def single_game(game_id):
             self.name = game_info.name
             self.date = game_info.release_date
             # SQLAlchemy annoyingly adds a bunch of random ending 0s to my NUMERIC values
-            self.price = round(game_info.price, 2)
+            self.price = round(game_info.price, 2) 
             self.synopsis = game_info.synopsis
             self.header = game_info.header_image
             self.website = game_info.website
@@ -363,11 +366,9 @@ def search(page, search_text=None, sort_style=None, sort_asc=None):
                 sort_asc_real = "ASC"
         else:
             sort_asc_real = sort_asc
-        genres = Genres.query.all()
-        print(genres[0].genre_id)
-        categories = Categories.query.all()
-        tags = Tags.query.all()
-        print(genres)
+        genres = Genres.query.order_by("genre_name").all()
+        categories = Categories.query.order_by("category_name").all()
+        tags = Tags.query.order_by("tag_name").all()
         sql_query = "SELECT game_id, name, header_image FROM games WHERE name LIKE ? ORDER BY %.8s %.4s LIMIT ? OFFSET ?;" % (sort_style, sort_asc_real)
         search_results = select_database(sql_query, (search_text_query, LIMIT, offset))
         if search_results:

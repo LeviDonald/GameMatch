@@ -59,3 +59,7 @@ body {
 .submit_button:hover {
     background-color: khaki;
 }
+
+fieldset {
+    font-size: 10px;
+}
