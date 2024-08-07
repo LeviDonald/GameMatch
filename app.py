@@ -1,16 +1,16 @@
-from flask import Flask, render_template, abort, url_for, request, redirect, flash, session
 import sqlite3
 from math import ceil
+import re
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
+from flask import Flask, render_template, abort, url_for, request, redirect, flash, session
 from werkzeug.security import check_password_hash, generate_password_hash
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import create_engine
 from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
-from datetime import datetime
-from dateutil.relativedelta import relativedelta
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, PasswordField, DateField
 from wtforms.validators import DataRequired, Length, EqualTo, ValidationError
-import re
 
 app = Flask(__name__)
 
@@ -42,6 +42,7 @@ login_manager.login_view = 'login'
 # Easy query process function (TO DO: possibly convert into class)
 # Use when using SELECT queries :)
 def select_database(query, id=None):
+    """Selects raw queries (SELECT)"""
     try:
         conn = sqlite3.connect(DATABASE)
         cursor = conn.cursor()
@@ -52,13 +53,14 @@ def select_database(query, id=None):
         results = cursor.fetchall()
         conn.close()
         return results
-    except Exception as e:
-        abort(404, e)
+    except Exception as exception:
+        abort(404, exception)
 
 
 # Use when using queries which include:
 # UPDATE, DROP, DELETE, INSERT and etc.
 def commit_database(query, id=None):
+    """Commits raw queries (INSERT, DELETE etc.)"""
     try:
         conn = sqlite3.connect(DATABASE)
         cursor = conn.cursor()
@@ -68,12 +70,13 @@ def commit_database(query, id=None):
             cursor.execute(query)
         conn.commit()
         conn.close()
-    except Exception as e:
-        abort(404, e)
+    except Exception as exception:
+        abort(404, exception)
 
 
 # Use to remove inappropriate tags / genres
 def remove_bad_games(ids, name):
+    """Deletes bad games based off of keywords"""
     # Goes through each inappropriate ID
     for i in ids:
         # Gets every game ID which is associated with this tag
@@ -85,8 +88,8 @@ def remove_bad_games(ids, name):
         commit_database("DELETE FROM game_{} WHERE {}_id = ?".format(name, name), (i,))
 
 
-# Raises a validation error if password / username uses special characters
 class UserCheck:
+    """Class to check for banned characters / words"""
     # Get arguments that are given when first called
     def __init__(self, banned, regex, message=None):
         self.banned = banned
@@ -107,6 +110,7 @@ class UserCheck:
 
 # Setting up tables to be used with SQLAlchemy
 class Users(db.Model, UserMixin):
+    """users SQLAlchemy Table"""
     __tablename__ = "user"
     username = db.Column(db.String, primary_key=True)
     password = db.Column(db.String, nullable=False)
@@ -116,51 +120,63 @@ class Users(db.Model, UserMixin):
 
 
 class FavouriteGames(db.Model):
+    """favourite_games SQLAlchemy Table"""
     __table__ = db.Table('favourite_games', db.metadata, autoload_with=epic_engine)
 
 
 class Games(db.Model):
+    """games SQLAlchemy Table"""
     __table__ = db.Table('games', db.metadata, autoload_with=epic_engine)
 
 
 class Categories(db.Model):
+    """categories SQLAlchemy Table"""
     __table__ = db.Table('categorys', db.metadata, autoload_with=epic_engine)
 
 
 class Genres(db.Model):
+    """genres SQLAlchemy Table"""
     __table__ = db.Table('genres', db.metadata, autoload_with=epic_engine)
 
 
 class Publishers(db.Model):
+    """publishers SQLAlchemy Table"""
     __table__ = db.Table('publishers', db.metadata, autoload_with=epic_engine)
 
 
 class Tags(db.Model):
+    """tags SQLAlchemy Table"""
     __table__ = db.Table('tags', db.metadata, autoload_with=epic_engine)
 
 
 class Developers(db.Model):
+    """developers SQLAlchemy Table"""
     __table__ = db.Table('developers', db.metadata, autoload_with=epic_engine)
 
 
 class GameCat(db.Model):
+    """game_category SQLAlchemy Table"""
     __table__ = db.Table('game_category', db.metadata, autoload_with=epic_engine)
 
 
 class GameGen(db.Model):
+    """game_genre SQLAlchemy Table"""
     __table__ = db.Table('game_genre', db.metadata, autoload_with=epic_engine)
 
 
 class GamePub(db.Model):
+    """game_publisher SQLAlchemy Table"""
     __table__ = db.Table('game_publisher', db.metadata, autoload_with=epic_engine)
 
 
 class GameDev(db.Model):
+    """game_developer SQLAlchemy Table"""
     __table__ = db.Table('game_developer', db.metadata, autoload_with=epic_engine)
 
 
 # WTForm for login.html
 class LoginForm(FlaskForm):
+    """WTForm for login.html"""
     username = StringField("Username", validators=[DataRequired(), Length(min=1, max=20, message="Must be within 1-20 characters"), UserCheck(message="Special characters not allowed",
                   banned=['root', 'admin', 'sys', 'administrator'],
                   regex="^(?=.*[-+_!@#$%^&*., ?]) ")])
@@ -170,8 +186,8 @@ class LoginForm(FlaskForm):
     submit = SubmitField("Submit")
 
 
-# WTForm for signup.html
 class SignForm(FlaskForm):
+    """WTForm for signup.html"""
     username = StringField("Username", validators=[DataRequired(), Length(min=1, max=20, message="Must be within 1-20 characters"), UserCheck(message="Special characters not allowed",
                   banned=['root', 'admin', 'sys', 'administrator'],
                   regex="^(?=.*[-+_!@#$%^&*., ?]) ")])
@@ -183,26 +199,29 @@ class SignForm(FlaskForm):
     submit = SubmitField("Submit")
 
 
-# Gets username upon user logging in
 @login_manager.user_loader
 def load_user(user_id):
+    """When logging in, gets username"""
     return Users.query.get(str(user_id))
 
 
 # Redirect here if error occurs
 @app.errorhandler(404)
 def error_404(exception):
+    """Error page"""
     return render_template(ERROR404, exception=exception)
 
 
 # Home page
 @app.route("/")
 def home():
+    """Home page"""
     return render_template(HOME)
 
 
 @app.route("/login", methods=["POST", "GET"])
 def login():
+    """Login form. Checks if username and password is correct and then logs in using flask-wtf"""
     form = LoginForm()
     if form.validate_on_submit():
         user_info = Users.query.filter_by(username=form.username.data).first()
@@ -220,6 +239,7 @@ def login():
 
 @app.route("/signup", methods=["POST", "GET"])
 def signup():
+    """Sign up form. If user has unique username, encrypt password and add to database"""
     form = SignForm()
     if form.validate_on_submit():
         dob = form.dob.data
@@ -244,12 +264,14 @@ def signup():
 @app.route("/logout")
 @login_required
 def logout():
+    """Logs out via. Flask-login and redirects to logout page"""
     logout_user()
     return render_template(LOGOUT)
 
 
 @app.route("/games/<int:page>/<string:sort_style>/<string:sort_asc>")
 def games(page, sort_style, sort_asc):
+    """Games page when not searching"""
     offset = (page-1) * LIMIT
     try:
         max_pages = select_database("SELECT COUNT(*) FROM games;")
@@ -258,22 +280,25 @@ def games(page, sort_style, sort_asc):
             abort(404, "This page doesn't exist!")
         # As the ? substitution does not apply to column names, I have to change the column name manually
         sql_query = "SELECT game_id, name, header_image FROM games ORDER BY %.8s %.4s LIMIT ? OFFSET ?;" % (sort_style, sort_asc)
-        # 0 - ID, 1 - Name, 2 - Image
         game_info = select_database(sql_query, (LIMIT, offset))
         if game_info:
+            # Gets genres, categories and tags in alphabetical order to be used in the search menu
             genres = Genres.query.order_by("genre_name").all()
             categories = Categories.query.order_by("category_name").all()
             tags = Tags.query.order_by("tag_name").all()
             return render_template(GAMES, game_info=game_info, page=page, max_pages=max_pages, sort_style=sort_style, sort_asc=sort_asc, genres=genres, categories=categories, tags=tags)
         else:
             abort(404, "This page doesn't exist!")
-    except Exception as e:
-        abort(404, e)
+    except Exception as exception:
+        abort(404, exception)
+
 
 
 @app.route("/game/<int:game_id>")
 def single_game(game_id):
-    class game():
+    """Individual game information page"""
+    class Game():
+        """Automatically does SQL queries to build information of a single game"""
         def __init__(self, game_id):
             # Gets basic info from the games table
             game_info = Games.query.filter(Games.game_id == game_id).first()
@@ -281,7 +306,7 @@ def single_game(game_id):
             self.name = game_info.name
             self.date = game_info.release_date
             # SQLAlchemy annoyingly adds a bunch of random ending 0s to my NUMERIC values
-            self.price = round(game_info.price, 2) 
+            self.price = round(game_info.price, 2)
             self.synopsis = game_info.synopsis
             self.header = game_info.header_image
             self.website = game_info.website
@@ -292,6 +317,7 @@ def single_game(game_id):
         # List of applicable tables :
         # 'genre', 'category', 'tag', 'developer', 'publisher'
         def select_bridge(self, table):
+            """Selects genre, category, tag and etc. information"""
             # Gets IDs from associated games' bridge table to use on the corresponding table to get names
             results = select_database("SELECT %.9s_id FROM game_%.9s WHERE game_id = %.9s;" % (table, table, self.game_id))
             if results:
@@ -303,8 +329,9 @@ def single_game(game_id):
                 return None
 
         def basic_info(self):
+            """Returns information from games"""
             return [self.name, self.date, self.price, self.synopsis, self.header, self.website, self.notes, self.playtime]
-    selected_game = game(game_id)
+    selected_game = Game(game_id)
     game_info = selected_game.basic_info()
     genres = selected_game.select_bridge('genre')
     tags = selected_game.select_bridge('tag')
@@ -317,42 +344,47 @@ def single_game(game_id):
 # Middleman for page changes, gets page num and redirects back to 'games'
 @app.route("/number_game/<string:sort_style>/<string:sort_asc>")
 def number_game(sort_style, sort_asc):
+    """Upon changing page number, get form data for  and then redirect to games"""
     try:
         if request.method == "POST":
             search_number = request.form["page_num"]
         else:
             search_number = request.args.get("page_num")
         return redirect(url_for('games', page=search_number, sort_style=sort_style, sort_asc=sort_asc))
-    except Exception as e:
-        abort(404, e)
+    except Exception as exception:
+        abort(404, exception)
 
 
 # Gateway for page changes, gets page num and redirects back to 'search'
 @app.route("/number_search/<string:search_text>/<string:sort_style>/<string:sort_asc>")
 def number_search(search_text, sort_style, sort_asc):
+    """If searching and user changes page number, get form data for page number and redirect to search"""
     try:
         if request.method == "POST":
             search_number = request.form["page_num"]
         else:
             search_number = request.args.get("page_num")
         return redirect(url_for('search', page=search_number, search_text=search_text, sort_style=sort_style, sort_asc=sort_asc))
-    except Exception as e:
-        abort(404, e)
+    except Exception as exception:
+        abort(404, exception)
 
 
 # Searching for specific games using search box
 @app.route("/search/<int:page>", methods=['GET'])
 @app.route("/search/<int:page>/<string:search_text>/<string:sort_style>/<string:sort_asc>", methods=['GET'])
 def search(page, search_text=None, sort_style=None, sort_asc=None):
+    """Same as games but with extra code for searching"""
     try:
+        # If search_text exists, don't request args
         if search_text:
-            search_text = search_text
-            sort_style = sort_style
-            sort_asc = sort_asc
+            print('hi')
         elif request.method == "GET":
             search_text = request.args.get("search_text")
             sort_style = request.args.get("sort_style")
             sort_asc = request.args.get("sort_asc")
+            sort_genres = request.args.getlist("sort_genres")
+            print(sort_genres)
+        # If neither request method is GET and no search_text, redirect back to games
         if not search_text:
             return redirect(url_for('games', page=1, sort_style=sort_style, sort_asc=sort_asc))
         offset = (page-1) * LIMIT
@@ -375,14 +407,15 @@ def search(page, search_text=None, sort_style=None, sort_asc=None):
             return render_template(SEARCH_GAMES, game_info=search_results, page=page, max_pages=max_pages, search_text=search_text, sort_style=sort_style, sort_asc=sort_asc, genres=genres, categories=categories, tags=tags)
         else:
             return render_template(SEARCH_GAMES, game_info=None, page=page, max_pages=max_pages, search_text=search_text, sort_style=sort_style, sort_asc=sort_asc, genres=genres, categories=categories, tags=tags)
-    except Exception as e:
-        abort(404, e)
+    except Exception as exception:
+        abort(404, exception)
 
 
 # Displays all the games the user has tracked/favourited
 @app.route("/favourite_games/<string:username>")
 @login_required
 def favourite_games(username):
+    """Loads all the games the user has favourited"""
     pass
 
 
