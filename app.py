@@ -1,13 +1,14 @@
+'''Game Match Website'''
 import sqlite3
 from math import ceil
 import re
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
-from flask import Flask, render_template, abort, url_for, request, redirect, flash, session
+from flask import Flask, render_template, abort, url_for, request, redirect, flash
 from werkzeug.security import check_password_hash, generate_password_hash
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import create_engine
-from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
+from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, PasswordField, DateField
 from wtforms.validators import DataRequired, Length, EqualTo, ValidationError
@@ -74,7 +75,6 @@ def commit_database(query, id=None):
         abort(404, exception)
 
 
-# Use to remove inappropriate tags / genres
 def remove_bad_games(ids, name):
     """Deletes bad games based off of keywords"""
     # Goes through each inappropriate ID
@@ -369,7 +369,6 @@ def number_search(search_text, sort_style, sort_asc):
         abort(404, exception)
 
 
-# Searching for specific games using search box
 @app.route("/search/<int:page>", methods=['GET'])
 @app.route("/search/<int:page>/<string:search_text>/<string:sort_style>/<string:sort_asc>", methods=['GET'])
 def search(page, search_text=None, sort_style=None, sort_asc=None):
@@ -383,14 +382,17 @@ def search(page, search_text=None, sort_style=None, sort_asc=None):
             sort_style = request.args.get("sort_style")
             sort_asc = request.args.get("sort_asc")
             sort_genres = request.args.getlist("sort_genres")
-            print(sort_genres)
+            sort_tags = request.args.getlist("sort_tags")
+            sort_categories = request.args.getlist("sort_categories")
         # If neither request method is GET and no search_text, redirect back to games
         if not search_text:
             return redirect(url_for('games', page=1, sort_style=sort_style, sort_asc=sort_asc))
         offset = (page-1) * LIMIT
+        # Manually adding %s to use with SQL's LIKE to find any games that includes the input text
         search_text_query = f'%{search_text}%'
         max_pages = select_database("SELECT COUNT(*) FROM games WHERE name LIKE ?;", (search_text_query,))
         max_pages = ceil(max_pages[0][0] / LIMIT)
+
         if sort_style == 'playtime':
             if sort_asc == "ASC":
                 sort_asc_real = "DESC"
