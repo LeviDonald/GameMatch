@@ -174,7 +174,7 @@ class GameDev(db.Model):
     __table__ = db.Table('game_developer', db.metadata, autoload_with=epic_engine)
 
 
-# WTForm for login.html
+# WTForm data
 class LoginForm(FlaskForm):
     """WTForm for login.html"""
     username = StringField("Username", validators=[DataRequired(), Length(min=1, max=20, message="Must be within 1-20 characters"), UserCheck(message="Special characters not allowed",
@@ -387,12 +387,13 @@ def search(page, search_text=None, sort_style=None, sort_asc=None):
         # If neither request method is GET and no search_text, redirect back to games
         if not search_text:
             return redirect(url_for('games', page=1, sort_style=sort_style, sort_asc=sort_asc))
+        elif sort_genres or sort_tags or sort_categories:
+            pass
         offset = (page-1) * LIMIT
         # Manually adding %s to use with SQL's LIKE to find any games that includes the input text
         search_text_query = f'%{search_text}%'
         max_pages = select_database("SELECT COUNT(*) FROM games WHERE name LIKE ?;", (search_text_query,))
         max_pages = ceil(max_pages[0][0] / LIMIT)
-
         if sort_style == 'playtime':
             if sort_asc == "ASC":
                 sort_asc_real = "DESC"
@@ -403,7 +404,7 @@ def search(page, search_text=None, sort_style=None, sort_asc=None):
         genres = Genres.query.order_by("genre_name").all()
         categories = Categories.query.order_by("category_name").all()
         tags = Tags.query.order_by("tag_name").all()
-        sql_query = "SELECT game_id, name, header_image FROM games WHERE name LIKE ? ORDER BY %.8s %.4s LIMIT ? OFFSET ?;" % (sort_style, sort_asc_real)
+        sql_query = "SELECT games.game_id, games.name, games.header_image FROM ((games INNER JOIN game_genre ON games.game_id = game_genre.game_id) INNER JOIN game_category ON games.game_id = game_category.game_id) WHERE name LIKE ? AND game_genre.game_id IN (?) ORDER BY %.8s %.4s LIMIT ? OFFSET ?;" % (sort_style, sort_asc_real)
         search_results = select_database(sql_query, (search_text_query, LIMIT, offset))
         if search_results:
             return render_template(SEARCH_GAMES, game_info=search_results, page=page, max_pages=max_pages, search_text=search_text, sort_style=sort_style, sort_asc=sort_asc, genres=genres, categories=categories, tags=tags)
