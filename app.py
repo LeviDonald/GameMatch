@@ -382,8 +382,8 @@ def search(page, search_text=None, sort_style=None, sort_asc=None):
             sort_style = request.args.get("sort_style")
             sort_asc = request.args.get("sort_asc")
             sort_genres = request.args.getlist("sort_genres")
-            sort_tags = request.args.getlist("sort_tags")
             sort_categories = request.args.getlist("sort_categories")
+            sort_tags = request.args.getlist("sort_tags")
         # If neither request method is GET and no search_text, redirect back to games
         if not search_text:
             return redirect(url_for('games', page=1, sort_style=sort_style, sort_asc=sort_asc))
@@ -404,8 +404,19 @@ def search(page, search_text=None, sort_style=None, sort_asc=None):
         genres = Genres.query.order_by("genre_name").all()
         categories = Categories.query.order_by("category_name").all()
         tags = Tags.query.order_by("tag_name").all()
-        sql_query = "SELECT games.game_id, games.name, games.header_image FROM ((games INNER JOIN game_genre ON games.game_id = game_genre.game_id) INNER JOIN game_category ON games.game_id = game_category.game_id) WHERE name LIKE ? AND game_genre.game_id IN (?) ORDER BY %.8s %.4s LIMIT ? OFFSET ?;" % (sort_style, sort_asc_real)
-        search_results = select_database(sql_query, (search_text_query, LIMIT, offset))
+        if not sort_genres:
+            sorted_genres = []
+            for genre in genres:
+                sorted_genres.append(genre.genre_id)
+                sort_genres = sorted_genres
+        if not sort_categories:
+            sorted_categories = []
+            for category in categories:
+                sorted_categories.append(category.category_id)
+                sort_categories = sorted_categories
+                
+        sql_query = "SELECT DISTINCT games.game_id, games.name, games.header_image FROM (((games INNER JOIN game_genre ON games.game_id = game_genre.game_id) INNER JOIN game_category ON games.game_id = game_category.game_id) INNER JOIN game_tag ON games.game_id = game_tag.game_id) WHERE games.name LIKE ? AND game_genre.genre_id IN (?) AND game_category.category_id IN (?) AND game_tag.tag_id IN (?) ORDER BY %.8s %.4s LIMIT ? OFFSET ?;" % (sort_style, sort_asc_real)
+        search_results = select_database(sql_query, (sort_genres, sort_categories, sort_tags, search_text_query, LIMIT, offset))
         if search_results:
             return render_template(SEARCH_GAMES, game_info=search_results, page=page, max_pages=max_pages, search_text=search_text, sort_style=sort_style, sort_asc=sort_asc, genres=genres, categories=categories, tags=tags)
         else:
