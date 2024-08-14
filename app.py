@@ -223,10 +223,14 @@ def home():
 def login():
     """Login form. Checks if username and password is correct and then logs in using flask-wtf"""
     form = LoginForm()
+    # When form is submitted
     if form.validate_on_submit():
+        # Get user information based on input username
         user_info = Users.query.filter_by(username=form.username.data).first()
         if user_info:
+            # Using werkzeug security, check hash stored in DB
             if check_password_hash(user_info.password, form.password.data):
+                # Flask-login logs in the user
                 login_user(user_info, remember=True)
                 return redirect(url_for('home'))
             else:
@@ -241,18 +245,25 @@ def login():
 def signup():
     """Sign up form. If user has unique username, encrypt password and add to database"""
     form = SignForm()
+    # When form is submitted
     if form.validate_on_submit():
+        # Get Date of Birth from form data
         dob = form.dob.data
+        # If user is older than 17 years old (as users are given the possibility to chat through sharing discord info, I put an age limit)
         if dob <= (datetime.today() - relativedelta(years=17)).date():
+            # If a result from the DB comes back then the username has already been taken
             user_check = Users.query.filter_by(username=form.username.data).first()
             if user_check:
                 flash("This username has already been taken! Please use a different one.")
             else:
+                # Else, set up a new user with the input username and newly generated hash
                 user = Users()
                 user.username = form.username.data
                 user.password = generate_password_hash(form.password.data, salt_length=16)
+                # Commit changes to the database
                 db.session.add(user)
                 db.session.commit()
+                # Flask-login logs in the user
                 login_user(user, remember=True)
                 return redirect(url_for('home'))
         else:
@@ -265,6 +276,7 @@ def signup():
 @login_required
 def logout():
     """Logs out via. Flask-login and redirects to logout page"""
+    # Flask-login logs out the user
     logout_user()
     return render_template(LOGOUT)
 
@@ -272,10 +284,14 @@ def logout():
 @app.route("/games/<int:page>/<string:sort_style>/<string:sort_asc>")
 def games(page, sort_style, sort_asc):
     """Games page when not searching"""
+    # SQL OFFSET starts at 0 and then increments by how many games are shown per page
     offset = (page-1) * LIMIT
     try:
+        # SQL returns how many games are in the DB
         max_pages = select_database("SELECT COUNT(*) FROM games;")
+        # Divide by how many games are shown per page and then ceiling round so it isn't a decimal
         max_pages = ceil(max_pages[0][0] / LIMIT)
+        # Error prevention if user types into the search bar a page that doesn't exist
         if page > max_pages:
             abort(404, "This page doesn't exist!")
         # As the ? substitution does not apply to column names, I have to change the column name manually
@@ -306,7 +322,7 @@ def single_game(game_id):
             self.name = game_info.name
             self.date = game_info.release_date
             # SQLAlchemy annoyingly adds a bunch of random ending 0s to my NUMERIC values
-            self.price = round(game_info.price, 2)
+            self.price = game_info.price
             self.synopsis = game_info.synopsis
             self.header = game_info.header_image
             self.website = game_info.website
@@ -381,14 +397,15 @@ def search(page, search_text=None, sort_style=None, sort_asc=None):
             search_text = request.args.get("search_text")
             sort_style = request.args.get("sort_style")
             sort_asc = request.args.get("sort_asc")
-            sort_genres = request.args.getlist("sort_genres")
-            sort_categories = request.args.getlist("sort_categories")
-            sort_tags = request.args.getlist("sort_tags")
         # If neither request method is GET and no search_text, redirect back to games
         if not search_text:
             return redirect(url_for('games', page=1, sort_style=sort_style, sort_asc=sort_asc))
-        elif sort_genres or sort_tags or sort_categories:
-            pass
+        sort_genres = request.args.getlist("sort_genres")
+        sort_categories = request.args.getlist("sort_categories")
+        sort_tags = request.args.getlist("sort_tags")
+        sort_genres = list(map(int, sort_genres))
+        sort_categories = list(map(int, sort_categories))
+        sort_tags = list(map(int, sort_tags))
         offset = (page-1) * LIMIT
         # Manually adding %s to use with SQL's LIKE to find any games that includes the input text
         search_text_query = f'%{search_text}%'
@@ -404,19 +421,33 @@ def search(page, search_text=None, sort_style=None, sort_asc=None):
         genres = Genres.query.order_by("genre_name").all()
         categories = Categories.query.order_by("category_name").all()
         tags = Tags.query.order_by("tag_name").all()
+        # If no genres/tags/categories were selected, basically select all genres
         if not sort_genres:
             sorted_genres = []
             for genre in genres:
                 sorted_genres.append(genre.genre_id)
-                sort_genres = sorted_genres
+            sort_genres = sorted_genres
         if not sort_categories:
             sorted_categories = []
             for category in categories:
                 sorted_categories.append(category.category_id)
-                sort_categories = sorted_categories
-                
-        sql_query = "SELECT DISTINCT games.game_id, games.name, games.header_image FROM (((games INNER JOIN game_genre ON games.game_id = game_genre.game_id) INNER JOIN game_category ON games.game_id = game_category.game_id) INNER JOIN game_tag ON games.game_id = game_tag.game_id) WHERE games.name LIKE ? AND game_genre.genre_id IN (?) AND game_category.category_id IN (?) AND game_tag.tag_id IN (?) ORDER BY %.8s %.4s LIMIT ? OFFSET ?;" % (sort_style, sort_asc_real)
-        search_results = select_database(sql_query, (sort_genres, sort_categories, sort_tags, search_text_query, LIMIT, offset))
+            sort_categories = sorted_categories
+        if not sort_tags:
+            sorted_tags = []
+            for tag in tags:
+                sorted_tags.append(tag.tag_id)
+            sort_tags = sorted_tags
+        sort_genres, sort_categories, sort_tags = tuple(sort_genres), tuple(sort_categories), tuple(sort_tags)
+        if len(sort_genres) == 1:
+            sort_genres = f"({sort_genres[0]})"
+        if len(sort_categories) == 1:
+            sort_categories = f"({sort_categories[0]})"
+        if len(sort_tags) == 1:
+            sort_tags = f"({sort_tags[0]})"
+        # Get DISTINCT entries from games table based on the user's input genres / categories / tags
+        sql_query = "SELECT DISTINCT games.game_id, games.name, games.header_image FROM (((games INNER JOIN game_genre ON games.game_id = game_genre.game_id) INNER JOIN game_category ON games.game_id = game_category.game_id) INNER JOIN game_tag ON games.game_id = game_tag.game_id) WHERE games.name LIKE ? AND game_genre.genre_id IN %s AND game_category.category_id IN %s AND game_tag.tag_id IN %s ORDER BY %.8s %.4s LIMIT ? OFFSET ?;" % (sort_genres, sort_categories, sort_tags, sort_style, sort_asc_real)
+        print(sql_query)
+        search_results = select_database(sql_query, (search_text_query, LIMIT, offset))
         if search_results:
             return render_template(SEARCH_GAMES, game_info=search_results, page=page, max_pages=max_pages, search_text=search_text, sort_style=sort_style, sort_asc=sort_asc, genres=genres, categories=categories, tags=tags)
         else:
