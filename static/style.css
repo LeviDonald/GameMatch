@@ -63,3 +63,16 @@ body {
 fieldset {
     font-size: 10px;
 }
+
+.my-multi-lines-item {
+    font-size: 14px;
+    white-space: initial;
+    display: flex;
+    height: 60px;
+    line-height: normal;
+}
+
+.my-multi-lines-text {
+    margin-top: auto;
+    margin-bottom: auto;
+}

@@ -398,19 +398,18 @@ def search(page, search_text=None, sort_style=None, sort_asc=None):
             sort_style = request.args.get("sort_style")
             sort_asc = request.args.get("sort_asc")
         # If neither request method is GET and no search_text, redirect back to games
-        if not search_text:
-            return redirect(url_for('games', page=1, sort_style=sort_style, sort_asc=sort_asc))
+        
         sort_genres = request.args.getlist("sort_genres")
         sort_categories = request.args.getlist("sort_categories")
         sort_tags = request.args.getlist("sort_tags")
+        if not search_text and not sort_genres and not sort_categories and not sort_tags:
+            return redirect(url_for('games', page=1, sort_style=sort_style, sort_asc=sort_asc))
         sort_genres = list(map(int, sort_genres))
         sort_categories = list(map(int, sort_categories))
         sort_tags = list(map(int, sort_tags))
         offset = (page-1) * LIMIT
         # Manually adding %s to use with SQL's LIKE to find any games that includes the input text
         search_text_query = f'%{search_text}%'
-        max_pages = select_database("SELECT COUNT(*) FROM games WHERE name LIKE ?;", (search_text_query,))
-        max_pages = ceil(max_pages[0][0] / LIMIT)
         if sort_style == 'playtime':
             if sort_asc == "ASC":
                 sort_asc_real = "DESC"
@@ -438,6 +437,7 @@ def search(page, search_text=None, sort_style=None, sort_asc=None):
                 sorted_tags.append(tag.tag_id)
             sort_tags = sorted_tags
         sort_genres, sort_categories, sort_tags = tuple(sort_genres), tuple(sort_categories), tuple(sort_tags)
+        # Removes the comma at the end if only one genre/tag/category to prevent SQL breaking
         if len(sort_genres) == 1:
             sort_genres = f"({sort_genres[0]})"
         if len(sort_categories) == 1:
@@ -446,8 +446,10 @@ def search(page, search_text=None, sort_style=None, sort_asc=None):
             sort_tags = f"({sort_tags[0]})"
         # Get DISTINCT entries from games table based on the user's input genres / categories / tags
         sql_query = "SELECT DISTINCT games.game_id, games.name, games.header_image FROM (((games INNER JOIN game_genre ON games.game_id = game_genre.game_id) INNER JOIN game_category ON games.game_id = game_category.game_id) INNER JOIN game_tag ON games.game_id = game_tag.game_id) WHERE games.name LIKE ? AND game_genre.genre_id IN %s AND game_category.category_id IN %s AND game_tag.tag_id IN %s ORDER BY %.8s %.4s LIMIT ? OFFSET ?;" % (sort_genres, sort_categories, sort_tags, sort_style, sort_asc_real)
-        print(sql_query)
         search_results = select_database(sql_query, (search_text_query, LIMIT, offset))
+        max_pages = "SELECT DISTINCT COUNT(*) FROM (((games INNER JOIN game_genre ON games.game_id = game_genre.game_id) INNER JOIN game_category ON games.game_id = game_category.game_id) INNER JOIN game_tag ON games.game_id = game_tag.game_id) WHERE games.name LIKE ? AND game_genre.genre_id IN %s AND game_category.category_id IN %s AND game_tag.tag_id IN %s;" % (search_text_query, sort_genres, sort_categories, sort_tags)
+        max_pages = select_database(max_pages, (search_text_query,))
+        max_pages = ceil(max_pages[0][0] / LIMIT)
         if search_results:
             return render_template(SEARCH_GAMES, game_info=search_results, page=page, max_pages=max_pages, search_text=search_text, sort_style=sort_style, sort_asc=sort_asc, genres=genres, categories=categories, tags=tags)
         else:
