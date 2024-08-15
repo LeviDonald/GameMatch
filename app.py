@@ -10,8 +10,8 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import create_engine
 from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, PasswordField, DateField
-from wtforms.validators import DataRequired, Length, EqualTo, ValidationError
+from wtforms import StringField, SubmitField, PasswordField, DateField, DecimalField
+from wtforms.validators import DataRequired, Length, EqualTo, ValidationError, NumberRange
 
 app = Flask(__name__)
 
@@ -86,6 +86,16 @@ def remove_bad_games(ids, name):
             commit_database("DELETE FROM games WHERE game_id = ?;", (game[0],))
         # Disposes of unnecessary data from bridge table
         commit_database("DELETE FROM game_{} WHERE {}_id = ?".format(name, name), (i,))
+
+
+def one_id_bugfix(sort_list):
+    """Removes the tuple comma at the end to make SQL not break"""
+    # If only one item in tuple
+    if len(sort_list) == 1:
+        # Remove comma
+        sort_list = f"({sort_list[0]})"
+    # If multiple items, return full list
+    return sort_list
 
 
 class UserCheck:
@@ -196,6 +206,12 @@ class SignForm(FlaskForm):
                   regex="^(?=.*[-+_!@#$%^&*., ?]) ")])
     confirm = PasswordField("Reconfirm password", validators=[DataRequired(), Length(min=6, max=20,)])
     dob = DateField('D.O.B', validators=[DataRequired()])
+    submit = SubmitField("Submit")
+
+
+class PageForm(FlaskForm):
+    """WTFORM for page change in search.html"""
+    page_num = DecimalField("Page", validators=[Length(min=1, max=10), NumberRange(min=1, max=10, message="Page number goes above or below limit!")])
     submit = SubmitField("Submit")
 
 
@@ -336,6 +352,7 @@ def single_game(game_id):
             """Selects genre, category, tag and etc. information"""
             # Gets IDs from associated games' bridge table to use on the corresponding table to get names
             results = select_database("SELECT %.9s_id FROM game_%.9s WHERE game_id = %.9s;" % (table, table, self.game_id))
+            # Checks if SELECT statement returned anything, if so, add genre/category/tag/etc.'s name to result_list based off of IDs returned
             if results:
                 result_list = []
                 for result in results:
@@ -360,12 +377,14 @@ def single_game(game_id):
 # Middleman for page changes, gets page num and redirects back to 'games'
 @app.route("/number_game/<string:sort_style>/<string:sort_asc>")
 def number_game(sort_style, sort_asc):
-    """Upon changing page number, get form data for  and then redirect to games"""
+    """Upon changing page number, get form data and then redirect to games"""
     try:
         if request.method == "POST":
             search_number = request.form["page_num"]
         else:
+            # Gets user's input number (This was made before the WTForm change)
             search_number = request.args.get("page_num")
+        # Redirects with new page number
         return redirect(url_for('games', page=search_number, sort_style=sort_style, sort_asc=sort_asc))
     except Exception as exception:
         abort(404, exception)
@@ -379,6 +398,7 @@ def number_search(search_text, sort_style, sort_asc):
         if request.method == "POST":
             search_number = request.form["page_num"]
         else:
+            # Same as /number_game but to be used with searching
             search_number = request.args.get("page_num")
         return redirect(url_for('search', page=search_number, search_text=search_text, sort_style=sort_style, sort_asc=sort_asc))
     except Exception as exception:
@@ -390,20 +410,19 @@ def number_search(search_text, sort_style, sort_asc):
 def search(page, search_text=None, sort_style=None, sort_asc=None):
     """Same as games but with extra code for searching"""
     try:
-        # If search_text exists, don't request args
+        # If search_text exists, don't request args.
         if search_text:
             print('hi')
         elif request.method == "GET":
             search_text = request.args.get("search_text")
             sort_style = request.args.get("sort_style")
             sort_asc = request.args.get("sort_asc")
-        # If neither request method is GET and no search_text, redirect back to games
-        
         sort_genres = request.args.getlist("sort_genres")
         sort_categories = request.args.getlist("sort_categories")
         sort_tags = request.args.getlist("sort_tags")
         if not search_text and not sort_genres and not sort_categories and not sort_tags:
             return redirect(url_for('games', page=1, sort_style=sort_style, sort_asc=sort_asc))
+        page_form = PageForm()
         sort_genres = list(map(int, sort_genres))
         sort_categories = list(map(int, sort_categories))
         sort_tags = list(map(int, sort_tags))
@@ -411,6 +430,8 @@ def search(page, search_text=None, sort_style=None, sort_asc=None):
         # Manually adding %s to use with SQL's LIKE to find any games that includes the input text
         search_text_query = f'%{search_text}%'
         if sort_style == 'playtime':
+            # Doing this for more of a usability thing.
+            # When 'popularity' is chosen as the sort style, make popularity ascending go from most playtime to lowest playtime
             if sort_asc == "ASC":
                 sort_asc_real = "DESC"
             else:
@@ -421,6 +442,7 @@ def search(page, search_text=None, sort_style=None, sort_asc=None):
         categories = Categories.query.order_by("category_name").all()
         tags = Tags.query.order_by("tag_name").all()
         # If no genres/tags/categories were selected, basically select all genres
+        # Not in function format as I cannot use specifically named column names (e.g genre_id)
         if not sort_genres:
             sorted_genres = []
             for genre in genres:
@@ -438,22 +460,22 @@ def search(page, search_text=None, sort_style=None, sort_asc=None):
             sort_tags = sorted_tags
         sort_genres, sort_categories, sort_tags = tuple(sort_genres), tuple(sort_categories), tuple(sort_tags)
         # Removes the comma at the end if only one genre/tag/category to prevent SQL breaking
-        if len(sort_genres) == 1:
-            sort_genres = f"({sort_genres[0]})"
-        if len(sort_categories) == 1:
-            sort_categories = f"({sort_categories[0]})"
-        if len(sort_tags) == 1:
-            sort_tags = f"({sort_tags[0]})"
-        # Get DISTINCT entries from games table based on the user's input genres / categories / tags
+        sort_genres = one_id_bugfix(sort_genres)
+        sort_categories = one_id_bugfix(sort_categories)
+        sort_tags = one_id_bugfix(sort_tags)
+        # Get DISTINCT entries from games table based on the user's input genres / categories / tags, sort_style 
         sql_query = "SELECT DISTINCT games.game_id, games.name, games.header_image FROM (((games INNER JOIN game_genre ON games.game_id = game_genre.game_id) INNER JOIN game_category ON games.game_id = game_category.game_id) INNER JOIN game_tag ON games.game_id = game_tag.game_id) WHERE games.name LIKE ? AND game_genre.genre_id IN %s AND game_category.category_id IN %s AND game_tag.tag_id IN %s ORDER BY %.8s %.4s LIMIT ? OFFSET ?;" % (sort_genres, sort_categories, sort_tags, sort_style, sort_asc_real)
         search_results = select_database(sql_query, (search_text_query, LIMIT, offset))
-        max_pages = "SELECT DISTINCT COUNT(*) FROM (((games INNER JOIN game_genre ON games.game_id = game_genre.game_id) INNER JOIN game_category ON games.game_id = game_category.game_id) INNER JOIN game_tag ON games.game_id = game_tag.game_id) WHERE games.name LIKE ? AND game_genre.genre_id IN %s AND game_category.category_id IN %s AND game_tag.tag_id IN %s;" % (search_text_query, sort_genres, sort_categories, sort_tags)
+        # Gets max_pages based on search arguments
+        max_pages = "SELECT DISTINCT COUNT(*) FROM (((games INNER JOIN game_genre ON games.game_id = game_genre.game_id) INNER JOIN game_category ON games.game_id = game_category.game_id) INNER JOIN game_tag ON games.game_id = game_tag.game_id) WHERE games.name LIKE ? AND game_genre.genre_id IN %s AND game_category.category_id IN %s AND game_tag.tag_id IN %s;" % (sort_genres, sort_categories, sort_tags)
         max_pages = select_database(max_pages, (search_text_query,))
         max_pages = ceil(max_pages[0][0] / LIMIT)
+        page_form.page_num.validators[1].max = max_pages
         if search_results:
-            return render_template(SEARCH_GAMES, game_info=search_results, page=page, max_pages=max_pages, search_text=search_text, sort_style=sort_style, sort_asc=sort_asc, genres=genres, categories=categories, tags=tags)
+            return render_template(SEARCH_GAMES, game_info=search_results, page=page, max_pages=max_pages, search_text=search_text, sort_style=sort_style, sort_asc=sort_asc, genres=genres, categories=categories, tags=tags, page_form=page_form)
         else:
-            return render_template(SEARCH_GAMES, game_info=None, page=page, max_pages=max_pages, search_text=search_text, sort_style=sort_style, sort_asc=sort_asc, genres=genres, categories=categories, tags=tags)
+            # If no search results appear from the user's search, show "No search results!" message
+            return render_template(SEARCH_GAMES, game_info=None, page=page, max_pages=max_pages, search_text=search_text, sort_style=sort_style, sort_asc=sort_asc, genres=genres, categories=categories, tags=tags, page_form=page_form)
     except Exception as exception:
         abort(404, exception)
 
@@ -462,6 +484,7 @@ def search(page, search_text=None, sort_style=None, sort_asc=None):
 @app.route("/favourite_games/<string:username>")
 @login_required
 def favourite_games(username):
+
     """Loads all the games the user has favourited"""
     pass
 
