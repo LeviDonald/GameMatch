@@ -10,8 +10,9 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import create_engine
 from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, PasswordField, DateField, DecimalField
+from wtforms import StringField, SubmitField, PasswordField, DateField, DecimalField, SelectMultipleField
 from wtforms.validators import DataRequired, Length, EqualTo, ValidationError, NumberRange
+from wtforms_alchemy import QuerySelectMultipleField
 
 app = Flask(__name__)
 
@@ -212,6 +213,9 @@ class SignForm(FlaskForm):
 
 class PageForm(FlaskForm):
     """WTForm for page change in search.html"""
+    genres = QuerySelectMultipleField("Genres", choices=[])
+    categories = QuerySelectMultipleField("Categories", choices=[])
+    tags = QuerySelectMultipleField("Tags", choices=[])
     page_num = DecimalField("Page", validators=[NumberRange(min=1, message="Page number goes above or below limit!")])
     submit = SubmitField("Submit")
 
@@ -420,6 +424,7 @@ def search(page, search_text=None, sort_style=None, sort_asc=None):
     sort_genres = request.args.getlist("sort_genres")
     sort_categories = request.args.getlist("sort_categories")
     sort_tags = request.args.getlist("sort_tags")
+    # If nothing was searched and no genres/categories/tags then redirect back to games
     if not search_text and not sort_genres and not sort_categories and not sort_tags:
         return redirect(url_for('games', page=1, sort_style=sort_style, sort_asc=sort_asc))
     page_form = PageForm()
@@ -473,6 +478,19 @@ def search(page, search_text=None, sort_style=None, sort_asc=None):
     max_pages = select_database(max_pages, (search_text_query,))
     max_pages = ceil(max_pages[0][0] / LIMIT)
     page_form.page_num.validators[0].max = max_pages
+    # Get all IDs and Names from Gen/Cat/Tags to be used with WTForms for a multi select
+    all_genres = []
+    all_categories = []
+    all_tags = []
+    for genre in genres:
+        all_genres.append((genre.genre_id, genre.genre_name))
+    for category in categories:
+        all_categories.append((category.category_id, category.category_name))
+    for tag in tags:
+        all_tags.append((tag.tag_id, tag.tag_name))
+    page_form.genres.choices = all_genres
+    page_form.categories.choices = all_categories
+    page_form.tags.choices = all_tags
     if search_results:
         return render_template(SEARCH_GAMES, game_info=search_results, page=page, max_pages=max_pages, search_text=search_text, sort_style=sort_style, sort_asc=sort_asc, genres=genres, categories=categories, tags=tags, page_form=page_form)
     else:

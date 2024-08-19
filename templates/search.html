@@ -42,6 +42,7 @@
 <!-- <p><form method="get" action="/number_search/{#search_text#}/{#sort_style#}/{#sort_asc#}" class="search_number"><input type="number" name="page_num" placeholder="{#page#}" min="1" max="{#max_pages#}"></form> / {#max_pages#}</p> -->
 <form method="POST">
     {{ page_form.hidden_tag() }}
+    {{ page_form.genres }}
     {{ page_form.page_num }} <p>{{max_pages}}</p>
     {{ page_form.submit.label }}
     {{ page_form.submit}}
