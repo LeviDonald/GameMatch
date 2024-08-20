@@ -10,7 +10,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import create_engine
 from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, PasswordField, DateField, DecimalField, SelectField
+from wtforms import StringField, SubmitField, PasswordField, DateField, DecimalField, SelectField, FormField
 from wtforms.validators import DataRequired, Length, EqualTo, ValidationError, NumberRange
 from wtforms_alchemy import QuerySelectMultipleField
 from wtforms import widgets
@@ -32,6 +32,12 @@ LIMIT = 5
 app.config['SECRET_KEY'] = '1e5ec2a58f909c4edbe7ffb3a7dcd84d'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///gamematch.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+
+@app.before_request
+def make_session_permanent():
+    session.permanent = True
+
 
 db = SQLAlchemy(app)
 
@@ -234,10 +240,9 @@ class PageForm(FlaskForm):
 
 class GenCatTagForm(FlaskForm):
     """WTForm for managing genre / category / tag choices"""
-    genres = QuerySelectMultipleField("Genres", choices=[])
-    categories = QuerySelectMultipleField("Categories", choices=[])
-    tags = QuerySelectMultipleField("Tags", choices=[])
-    submit = SubmitField("Submit")
+    genres = CheckboxMultiField("Genres")
+    categories = CheckboxMultiField("Categories")
+    tags = CheckboxMultiField("Tags")
 
 
 class SortForm(FlaskForm):
@@ -245,6 +250,12 @@ class SortForm(FlaskForm):
     search_query = StringField("Search: ")
     sort_style = SelectField("Sort Style", validators=[DataRequired()])
     sort_asc = SelectField("Sort ASC/DESC", validators=[DataRequired()])
+
+
+class CombinedForm(FlaskForm):
+    """Manages sort_styles, ASC DESC, user_input, gen/cat/tag choices"""
+    gen_form = FormField(GenCatTagForm)
+    sort_form = FormField(SortForm)
     submit = SubmitField("Submit")
 
 
@@ -332,34 +343,84 @@ def logout():
 
 @app.route("/clear_search")
 def clear_search():
-    session['page'] = None
+    session['page'] = 1
     session['genres'] = None
     session['categories'] = None
     session['tags'] = None
-    session['search_style'] = None
-    session['search_asc'] = None
+    session['sort_style'] = 'name'
+    session['sort_asc'] = 'ASC'
+    session['search_query'] = None
     return redirect(url_for('games'))
 
 
-@app.route("/games")
+@app.route("/games", methods=["POST", "GET"])
 def games():
-    if 'page' not in session:
-        session['page'] = 1
+    LIMIT = 5
+    print(session['page'])
+    offset = (session['page'] - 1) * LIMIT
     page_form = PageForm()
-    gen_form = GenCatTagForm()
-    sort_form = SortForm()
-    gen_form.genres.query = Genres.query.all()
-    gen_form.categories.query = Categories.query.all()
-    gen_form.tags.query = Tags.query.all()
+    combined_form = CombinedForm()
+    combined_form.gen_form.genres.query = Genres.query.all()
+    combined_form.gen_form.categories.query = Categories.query.all()
+    combined_form.gen_form.tags.query = Tags.query.all()
     page_form.page_num.default = session['page']
-    sort_form.sort_style.choices = [('name', 'Alphabetically'), ('playtime', 'Popularity')]
-    sort_form.sort_asc.choices = [('ASC', 'Ascending'), ('DESC', 'Descending')]
-    
-    if 'genres' in session or 'categories' in session or 'tags' in session:
-        sql_query = 
+    combined_form.sort_form.sort_style.choices = [('name', 'Alphabetically'), ('playtime', 'Popularity')]
+    combined_form.sort_form.sort_asc.choices = [('ASC', 'Ascending'), ('DESC', 'Descending')]
+    if page_form.is_submitted():
+        if page_form.page_num.data:
+            session['page'] = page_form.page_num.data
+    if combined_form.is_submitted():
+        # Can't put in function format because of unique column names (e.g genre_id)
+        genres = combined_form.gen_form.genres.data
+        new_list = []
+        if genres:
+            for genre in genres:
+                new_list.append(genre.genre_id)
+            session['genres'] = tuple(new_list)
+        else:
+            new_list = [id[0] for id in Genres.query.with_entities(Genres.genre_id).all()]
+        session['genres'] = one_id_bugfix(tuple(new_list))
+        new_list = []
+        categories = combined_form.gen_form.categories.data
+        if categories:
+            for category in categories:
+                new_list.append(category.category_id)
+        else:
+            new_list = [id[0] for id in Categories.query.with_entities(Categories.category_id).all()]
+        session['categories'] = one_id_bugfix(tuple(new_list))
+        tags = combined_form.gen_form.tags.data
+        new_list = []
+        if tags:
+            for tag in tags:
+                new_list.append(tag.tag_id)
+        else:
+            new_list = [id[0] for id in Tags.query.with_entities(Tags.tag_id).all()]
+        session['tags'] = one_id_bugfix(tuple(new_list))
+        session['sort_style'] = combined_form.sort_form.sort_style.data
+        session['sort_asc'] = combined_form.sort_form.sort_asc.data
+        search_query = combined_form.sort_form.search_query.data
+        if search_query:
+            session['search_query'] = f"%{search_query}%"
+        return redirect(url_for('games'))
+    # If user is searching using words
+    if session['search_query']:
+        # If words + genres
+        if session['genres'] or session['categories'] or session['tags']:
+            sql_query = "SELECT DISTINCT games.game_id, games.name, games.header_image FROM (((games INNER JOIN game_genre ON games.game_id = game_genre.game_id) INNER JOIN game_category ON games.game_id = game_category.game_id) INNER JOIN game_tag ON games.game_id = game_tag.game_id) WHERE games.name LIKE ? AND game_genre.genre_id IN %s AND game_category.category_id IN %s AND game_tag.tag_id IN %s ORDER BY %.8s %.4s LIMIT ? OFFSET ?;" % (session['genres'], session['categories'], session['tags'], session['sort_style'], session['sort_asc'])
+            print(sql_query)
+        # If words
+        else:
+            sql_query = "SELECT game_id, name, header_image FROM games WHERE name LIKE ? ORDER BY %s %s LIMIT ? OFFSET ?;" % (session['sort_style'], session['sort_asc'])
+        game_info = select_database(sql_query, (session['search_query'], LIMIT, offset))
     else:
-        pass
-    return render_template("search.html", page_form=page_form, gen_form=gen_form, sort_form=sort_form)
+        # If genres
+        if session['genres'] or session['categories'] or session['tags']:
+            sql_query = "SELECT DISTINCT games.game_id, games.name, games.header_image FROM (((games INNER JOIN game_genre ON games.game_id = game_genre.game_id) INNER JOIN game_category ON games.game_id = game_category.game_id) INNER JOIN game_tag ON games.game_id = game_tag.game_id) game_genre.genre_id IN %s AND game_category.category_id IN %s AND game_tag.tag_id IN %s ORDER BY %.8s %.4s LIMIT ? OFFSET ?;" % (session['genres'], session['categories'], session['tags'], session['sort_style'], session['sort_asc'])
+        # If blank search
+        else:
+            sql_query = "SELECT game_id, name, header_image FROM games ORDER BY %.8s %.4s LIMIT ? OFFSET ?;" % (session['sort_style'], session['sort_asc'])
+        game_info = select_database(sql_query, (LIMIT, offset))
+    return render_template(SEARCH_GAMES, page_form=page_form, form=combined_form, game_info=game_info)
 
 
 # @app.route("/games/<int:page>/<string:sort_style>/<string:sort_asc>")
