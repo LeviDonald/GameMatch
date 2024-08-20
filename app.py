@@ -4,7 +4,7 @@ from math import ceil
 import re
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
-from flask import Flask, render_template, abort, url_for, request, redirect, flash
+from flask import Flask, render_template, abort, url_for, request, redirect, flash, session
 from werkzeug.security import check_password_hash, generate_password_hash
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import create_engine
@@ -13,6 +13,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, PasswordField, DateField, DecimalField, SelectField
 from wtforms.validators import DataRequired, Length, EqualTo, ValidationError, NumberRange
 from wtforms_alchemy import QuerySelectMultipleField
+from wtforms import widgets
 
 app = Flask(__name__)
 
@@ -145,10 +146,16 @@ class Categories(db.Model):
     """categories SQLAlchemy Table"""
     __table__ = db.Table('categorys', db.metadata, autoload_with=epic_engine)
 
+    def __str__(self):
+        return self.category_name
+
 
 class Genres(db.Model):
     """genres SQLAlchemy Table"""
     __table__ = db.Table('genres', db.metadata, autoload_with=epic_engine)
+
+    def __str__(self):
+        return self.genre_name
 
 
 class Publishers(db.Model):
@@ -159,6 +166,9 @@ class Publishers(db.Model):
 class Tags(db.Model):
     """tags SQLAlchemy Table"""
     __table__ = db.Table('tags', db.metadata, autoload_with=epic_engine)
+
+    def __str__(self):
+        return self.tag_name
 
 
 class Developers(db.Model):
@@ -209,6 +219,11 @@ class SignForm(FlaskForm):
     confirm = PasswordField("Reconfirm password", validators=[DataRequired(), Length(min=6, max=20,)])
     dob = DateField('D.O.B', validators=[DataRequired()])
     submit = SubmitField("Change page")
+
+
+class CheckboxMultiField(QuerySelectMultipleField):
+    widget = widgets.ListWidget(prefix_label=False)
+    option_widget = widgets.CheckboxInput()
 
 
 class PageForm(FlaskForm):
@@ -439,15 +454,22 @@ def search(page, search_text=None, sort_style=None, sort_asc=None):
         search_text = request.args.get("search_text")
         sort_style = request.args.get("sort_style")
         sort_asc = request.args.get("sort_asc")
-    sort_genres = request.args.getlist("sort_genres")
-    sort_categories = request.args.getlist("sort_categories")
-    sort_tags = request.args.getlist("sort_tags")
     # If nothing was searched and no genres/categories/tags then redirect back to games
-    if not search_text and not sort_genres and not sort_categories and not sort_tags:
-        return redirect(url_for('games', page=1, sort_style=sort_style, sort_asc=sort_asc))
     page_form = PageForm()
+    page_form.page_num.default = page
+    page_form.process()
+    sort_genres = []
+    sort_categories = []
+    sort_tags = []
     if page_form.validate_on_submit():
         page = page_form.page_num.data
+        sort_genres = page_form.genres.data
+        sort_categories = page_form.categories.data
+        sort_tags = page_form.tags.data
+        print(page, sort_genres)
+    print(page, sort_genres, sort_categories, sort_tags)
+    if not search_text and not sort_genres and not sort_categories and not sort_tags:
+        return redirect(url_for('games', page=1, sort_style=sort_style, sort_asc=sort_asc))
     sort_genres = list(map(int, sort_genres))
     sort_categories = list(map(int, sort_categories))
     sort_tags = list(map(int, sort_tags))
@@ -495,20 +517,14 @@ def search(page, search_text=None, sort_style=None, sort_asc=None):
     max_pages = "SELECT DISTINCT COUNT(*) FROM (((games INNER JOIN game_genre ON games.game_id = game_genre.game_id) INNER JOIN game_category ON games.game_id = game_category.game_id) INNER JOIN game_tag ON games.game_id = game_tag.game_id) WHERE games.name LIKE ? AND game_genre.genre_id IN %s AND game_category.category_id IN %s AND game_tag.tag_id IN %s;" % (sort_genres, sort_categories, sort_tags)
     max_pages = select_database(max_pages, (search_text_query,))
     max_pages = ceil(max_pages[0][0] / LIMIT)
+    # Page_Form WTForm configuration
+    # Changing max number validator
     page_form.page_num.validators[0].max = max_pages
-    # Get all IDs and Names from Gen/Cat/Tags to be used with WTForms for a multi select
-    all_genres = []
-    all_categories = []
-    all_tags = []
-    for genre in genres:
-        all_genres.append((genre.genre_id, genre.genre_name))
-    for category in categories:
-        all_categories.append((category.category_id, category.category_name))
-    for tag in tags:
-        all_tags.append((tag.tag_id, tag.tag_name))
-    page_form.genres.choices = all_genres
-    page_form.categories.choices = all_categories
-    page_form.tags.choices = all_tags
+    page_form.page_num.default = page
+    # Get all results from Gen/Cat/Tags and add them to WTForms
+    page_form.genres.query = Genres.query.all()
+    page_form.categories.query = Categories.query.all()
+    page_form.tags.query = Tags.query.all()
     if search_results:
         return render_template(SEARCH_GAMES, game_info=search_results, page=page, max_pages=max_pages, search_text=search_text, sort_style=sort_style, sort_asc=sort_asc, genres=genres, categories=categories, tags=tags, page_form=page_form)
     else:
