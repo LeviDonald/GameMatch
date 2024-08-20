@@ -330,9 +330,36 @@ def logout():
     return render_template(LOGOUT)
 
 
+@app.route("/clear_search")
+def clear_search():
+    session['page'] = None
+    session['genres'] = None
+    session['categories'] = None
+    session['tags'] = None
+    session['search_style'] = None
+    session['search_asc'] = None
+    return redirect(url_for('games'))
+
+
 @app.route("/games")
 def games():
     if 'page' not in session:
+        session['page'] = 1
+    page_form = PageForm()
+    gen_form = GenCatTagForm()
+    sort_form = SortForm()
+    gen_form.genres.query = Genres.query.all()
+    gen_form.categories.query = Categories.query.all()
+    gen_form.tags.query = Tags.query.all()
+    page_form.page_num.default = session['page']
+    sort_form.sort_style.choices = [('name', 'Alphabetically'), ('playtime', 'Popularity')]
+    sort_form.sort_asc.choices = [('ASC', 'Ascending'), ('DESC', 'Descending')]
+    
+    if 'genres' in session or 'categories' in session or 'tags' in session:
+        sql_query = 
+    else:
+        pass
+    return render_template("search.html", page_form=page_form, gen_form=gen_form, sort_form=sort_form)
 
 
 # @app.route("/games/<int:page>/<string:sort_style>/<string:sort_asc>")
@@ -538,7 +565,6 @@ def search(page, search_text=None, sort_style=None, sort_asc=None):
 @app.route("/favourite_games/<string:username>")
 @login_required
 def favourite_games(username):
-
     """Loads all the games the user has favourited"""
     pass
 
