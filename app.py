@@ -10,7 +10,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import create_engine
 from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, PasswordField, DateField, DecimalField, SelectMultipleField
+from wtforms import StringField, SubmitField, PasswordField, DateField, DecimalField, SelectField
 from wtforms.validators import DataRequired, Length, EqualTo, ValidationError, NumberRange
 from wtforms_alchemy import QuerySelectMultipleField
 
@@ -213,10 +213,23 @@ class SignForm(FlaskForm):
 
 class PageForm(FlaskForm):
     """WTForm for page change in search.html"""
+    page_num = DecimalField("Page", validators=[NumberRange(min=1, message="Page number goes above or below limit!")])
+    submit = SubmitField("Submit")
+
+
+class GenCatTagForm(FlaskForm):
+    """WTForm for managing genre / category / tag choices"""
     genres = QuerySelectMultipleField("Genres", choices=[])
     categories = QuerySelectMultipleField("Categories", choices=[])
     tags = QuerySelectMultipleField("Tags", choices=[])
-    page_num = DecimalField("Page", validators=[NumberRange(min=1, message="Page number goes above or below limit!")])
+    submit = SubmitField("Submit")
+
+
+class SortForm(FlaskForm):
+    """WTForm for managing sort styles and ASC and DESC and user input"""
+    search_query = StringField("Search: ")
+    sort_style = SelectField("Sort Style", validators=[DataRequired()])
+    sort_asc = SelectField("Sort ASC/DESC", validators=[DataRequired()])
     submit = SubmitField("Submit")
 
 
@@ -302,32 +315,37 @@ def logout():
     return render_template(LOGOUT)
 
 
-@app.route("/games/<int:page>/<string:sort_style>/<string:sort_asc>")
-def games(page, sort_style, sort_asc):
-    """Games page when not searching"""
-    # SQL OFFSET starts at 0 and then increments by how many games are shown per page
-    offset = (page-1) * LIMIT
-    try:
-        # SQL returns how many games are in the DB
-        max_pages = select_database("SELECT COUNT(*) FROM games;")
-        # Divide by how many games are shown per page and then ceiling round so it isn't a decimal
-        max_pages = ceil(max_pages[0][0] / LIMIT)
-        # Error prevention if user types into the search bar a page that doesn't exist
-        if page > max_pages:
-            abort(404, "This page doesn't exist!")
-        # As the ? substitution does not apply to column names, I have to change the column name manually
-        sql_query = "SELECT game_id, name, header_image FROM games ORDER BY %.8s %.4s LIMIT ? OFFSET ?;" % (sort_style, sort_asc)
-        game_info = select_database(sql_query, (LIMIT, offset))
-        if game_info:
-            # Gets genres, categories and tags in alphabetical order to be used in the search menu
-            genres = Genres.query.order_by("genre_name").all()
-            categories = Categories.query.order_by("category_name").all()
-            tags = Tags.query.order_by("tag_name").all()
-            return render_template(GAMES, game_info=game_info, page=page, max_pages=max_pages, sort_style=sort_style, sort_asc=sort_asc, genres=genres, categories=categories, tags=tags)
-        else:
-            abort(404, "This page doesn't exist!")
-    except Exception as exception:
-        abort(404, exception)
+@app.route("/games")
+def games():
+    if 'page' not in session:
+
+
+# @app.route("/games/<int:page>/<string:sort_style>/<string:sort_asc>")
+# def games(page, sort_style, sort_asc):
+#     """Games page when not searching"""
+#     # SQL OFFSET starts at 0 and then increments by how many games are shown per page
+#     offset = (page-1) * LIMIT
+#     try:
+#         # SQL returns how many games are in the DB
+#         max_pages = select_database("SELECT COUNT(*) FROM games;")
+#         # Divide by how many games are shown per page and then ceiling round so it isn't a decimal
+#         max_pages = ceil(max_pages[0][0] / LIMIT)
+#         # Error prevention if user types into the search bar a page that doesn't exist
+#         if page > max_pages:
+#             abort(404, "This page doesn't exist!")
+#         # As the ? substitution does not apply to column names, I have to change the column name manually
+#         sql_query = "SELECT game_id, name, header_image FROM games ORDER BY %.8s %.4s LIMIT ? OFFSET ?;" % (sort_style, sort_asc)
+#         game_info = select_database(sql_query, (LIMIT, offset))
+#         if game_info:
+#             # Gets genres, categories and tags in alphabetical order to be used in the search menu
+#             genres = Genres.query.order_by("genre_name").all()
+#             categories = Categories.query.order_by("category_name").all()
+#             tags = Tags.query.order_by("tag_name").all()
+#             return render_template(GAMES, game_info=game_info, page=page, max_pages=max_pages, sort_style=sort_style, sort_asc=sort_asc, genres=genres, categories=categories, tags=tags)
+#         else:
+#             abort(404, "This page doesn't exist!")
+#     except Exception as exception:
+#         abort(404, exception)
 
 
 @app.route("/game/<int:game_id>")
