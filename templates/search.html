@@ -20,7 +20,7 @@
         {{ form.gen_form.tags }}
     </div>
     <br>
-    {{ form.submit() }}
+    <input type="submit" name="combined">
 </form>
 <form method="POST">
     {{ page_form.hidden_tag() }}
@@ -29,7 +29,7 @@
     {{ page_form.tags }}
     {{ page_form.page_num }} <p>{{max_pages}}</p>
     {{ page_form.submit.label }}
-    {{ page_form.submit() }}
+    <input type="submit" name="page_change">
 </form>
 <hr>
 {% if game_info != None %}

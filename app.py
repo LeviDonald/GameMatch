@@ -356,7 +356,6 @@ def clear_search():
 @app.route("/games", methods=["POST", "GET"])
 def games():
     LIMIT = 5
-    print(session['page'])
     offset = (session['page'] - 1) * LIMIT
     page_form = PageForm()
     combined_form = CombinedForm()
@@ -366,10 +365,10 @@ def games():
     page_form.page_num.default = session['page']
     combined_form.sort_form.sort_style.choices = [('name', 'Alphabetically'), ('playtime', 'Popularity')]
     combined_form.sort_form.sort_asc.choices = [('ASC', 'Ascending'), ('DESC', 'Descending')]
-    if page_form.is_submitted():
+    if page_form.is_submitted() and 'page_change' in request.form:
         if page_form.page_num.data:
             session['page'] = page_form.page_num.data
-    if combined_form.is_submitted():
+    if combined_form.is_submitted() and 'combined' in request.form:
         # Can't put in function format because of unique column names (e.g genre_id)
         genres = combined_form.gen_form.genres.data
         new_list = []
@@ -407,7 +406,7 @@ def games():
         # If words + genres
         if session['genres'] or session['categories'] or session['tags']:
             sql_query = "SELECT DISTINCT games.game_id, games.name, games.header_image FROM (((games INNER JOIN game_genre ON games.game_id = game_genre.game_id) INNER JOIN game_category ON games.game_id = game_category.game_id) INNER JOIN game_tag ON games.game_id = game_tag.game_id) WHERE games.name LIKE ? AND game_genre.genre_id IN %s AND game_category.category_id IN %s AND game_tag.tag_id IN %s ORDER BY %.8s %.4s LIMIT ? OFFSET ?;" % (session['genres'], session['categories'], session['tags'], session['sort_style'], session['sort_asc'])
-            print(sql_query)
+            count_query = "SELECT COUNT(*) FROM (SELECT DISTINCT games.game_id, games.name, games.header_image FROM (((games INNER JOIN game_genre ON games.game_id = game_genre.game_id) INNER JOIN game_category ON games.game_id = game_category.game_id) INNER JOIN game_tag ON games.game_id = game_tag.game_id) WHERE games.name LIKE ? AND game_genre.genre_id IN %s AND game_category.category_id IN %s AND game_tag.tag_id IN %s ORDER BY %.8s %.4s LIMIT ? OFFSET ?);" % (session['genres'], session['categories'], session['tags'], session['sort_style'], session['sort_asc'])
         # If words
         else:
             sql_query = "SELECT game_id, name, header_image FROM games WHERE name LIKE ? ORDER BY %s %s LIMIT ? OFFSET ?;" % (session['sort_style'], session['sort_asc'])
