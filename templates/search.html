@@ -2,7 +2,7 @@
 {% block content %}
 <h2>Search</h2>
 <br>
-{% if max_pages != 0 and max_pages != 1 %}
+{% if game_info %}
 {% if page < max_pages %} <p><a href="/change_page/{{page + 1}}">NEXT</a></p> {% endif %}
 {% if page > 1 %} <p><a href="/change_page/{{page - 1}}">PREVIOUS</a></p> {% endif %}
 {% endif %}
@@ -33,16 +33,14 @@
     <input type="submit" name="page_change">
 </form>
 <hr>
-{% if game_info != None %}
+{% if game_info %}
     {% for game in game_info %}
     <div class="games">
         <h3><a href="/game/{{game[0]}}">{{game[1]}}</h3>
         <img src="{{game[2]}}" loading=lazy></a>
     </div>
     {% endfor %}
-    <hr>
 {% else %}
-    <h4><u>No search results!</u></h4>
-    <p>(Try searching again!)</p>
+<p><b>No search results!</b> (Try searching for something else)</p>
 {% endif %}
 {% endblock %}
