@@ -2,6 +2,10 @@
 {% block content %}
 <h2>Search</h2>
 <br>
+{% if max_pages != 0 and max_pages != 1 %}
+{% if page < max_pages %} <p><a href="/change_page/{{page + 1}}">NEXT</a></p> {% endif %}
+{% if page > 1 %} <p><a href="/change_page/{{page - 1}}">PREVIOUS</a></p> {% endif %}
+{% endif %}
 <form method="POST">
     {{ form.hidden_tag() }}
     {{ form.sort_form.sort_style }}
@@ -16,18 +20,15 @@
     <div>
         {{ form.gen_form.categories }}
     </div>
-    <div>
-        {{ form.gen_form.tags }}
-    </div>
     <br>
     <input type="submit" name="combined">
 </form>
 <form method="POST">
     {{ page_form.hidden_tag() }}
+    {{ page_form.csrf_token }}
     {{ page_form.genres }}
     {{ page_form.categories }}
-    {{ page_form.tags }}
-    {{ page_form.page_num }} <p>{{max_pages}}</p>
+    {{ page_form.page_num }} <p>{{page}} / {{max_pages}}</p>
     {{ page_form.submit.label }}
     <input type="submit" name="page_change">
 </form>
