@@ -8,7 +8,7 @@ from flask import Flask, render_template, abort, url_for, request, redirect, fla
 from werkzeug.security import check_password_hash, generate_password_hash
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import create_engine
-from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user
+from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, PasswordField, DateField, IntegerField, SelectField, FormField
 from wtforms.validators import DataRequired, Length, EqualTo, ValidationError, NumberRange
@@ -341,6 +341,12 @@ def logout():
         return render_template(LOGOUT)
     except Exception as e:
         abort(404, e)
+
+
+@app.route("/new_favourite/<string:user>/<int:game_id>")
+def new_favourite(user, game_id):
+    if user:
+        pass
 
 
 @app.route("/clear_search")

@@ -38,6 +38,9 @@
     <div class="games">
         <h3><a href="/game/{{game[0]}}">{{game[1]}}</h3>
         <img src="{{game[2]}}" loading=lazy></a>
+        <div id="favourite_image">
+            <img src="/static/download.jpg" loading="lazy" hx-post="/new_favourite/{{current_user.username}}/{{}}" hx-target="#favourite_image" hx-trigger="click" hx-swap="innerHTML">
+        </div>
     </div>
     {% endfor %}
 {% else %}
