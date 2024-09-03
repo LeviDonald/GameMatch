@@ -26,6 +26,7 @@ LOGIN = "login.html"
 LOGOUT = "logout.html"
 SIGNUP = "signup.html"
 FAV_GAME = "favourite_games.html"
+FAV_IMAGE = "favourite_image.html"
 ERROR404 = "404.html"
 LIMIT = 5
 
@@ -342,13 +343,6 @@ def logout():
     except Exception as e:
         abort(404, e)
 
-
-@app.route("/new_favourite/<string:user>/<int:game_id>")
-def new_favourite(user, game_id):
-    if user:
-        pass
-
-
 @app.route("/clear_search")
 def clear_search():
     try:
@@ -472,6 +466,27 @@ def games():
     return render_template(SEARCH_GAMES, page_form=page_form, form=combined_form, game_info=game_info, max_pages=session['max_pages'], page=session['page'])
     # except Exception as e:
     #     abort(404, e)
+
+
+@app.route('/favourite_image/<string:username>/<int:game_id>/<int:clicked>')
+def favourite_image(username, game_id, clicked):
+    favourite_check = FavouriteGames.query.filter_by(user_id=username).all()
+    for favourite in favourite_check:
+        print(game_id, favourite.game_id)
+        if favourite.game_id == game_id:
+            if clicked == 1:
+                db.session.delete(favourite)
+                db.session.commit()
+                return render_template(FAV_IMAGE, image="unfavourite")
+            return render_template(FAV_IMAGE, image="favourite")
+    if clicked == 1:
+        new_favourite = FavouriteGames()
+        new_favourite.user_id = username
+        new_favourite.game_id = game_id
+        db.session.add(new_favourite)
+        db.session.commit()
+        return render_template(FAV_IMAGE, image="favourite")
+    return render_template(FAV_IMAGE, image="unfavourite")
 
 
 @app.route("/game/<int:game_id>")

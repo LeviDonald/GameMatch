@@ -34,15 +34,24 @@
 </form>
 <hr>
 {% if game_info %}
-    {% for game in game_info %}
-    <div class="games">
-        <h3><a href="/game/{{game[0]}}">{{game[1]}}</h3>
-        <img src="{{game[2]}}" loading=lazy></a>
-        <div id="favourite_image">
-            <img src="/static/download.jpg" loading="lazy" hx-post="/new_favourite/{{current_user.username}}/{{}}" hx-target="#favourite_image" hx-trigger="click" hx-swap="innerHTML">
+    {% if current_user.is_authenticated %}
+        {% for game in game_info %}
+        <div class="games" hx-get="/favourite_image/{{current_user.username}}/{{game[0]}}/0" hx-target="#favourite_{{game[0]}}" hx-swap="innerHTML" hx-trigger="load">
+            <button hx-get="/favourite_image/{{current_user.username}}/{{game[0]}}/1" hx-target="#favourite_{{game[0]}}" hx-swap="innerHTML" hx-trigger="click">favourite</button>
+            <h3><a href="/game/{{game[0]}}">{{game[1]}}</h3>
+            <img src="{{game[2]}}" loading=lazy></a>
+            <div id="favourite_{{game[0]}}">
+            </div>
         </div>
-    </div>
-    {% endfor %}
+        {% endfor %}
+    {% else %}
+        {% for game in game_info %}
+        <div class="games">
+            <h3><a href="/game/{{game[0]}}">{{game[1]}}</h3>
+            <img src="{{game[2]}}" loading=lazy></a>
+        </div>
+        {% endfor %}
+    {% endif %}
 {% else %}
 <p><b>No search results!</b> (Try searching for something else)</p>
 {% endif %}
