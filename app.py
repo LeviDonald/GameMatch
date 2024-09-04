@@ -26,7 +26,7 @@ LOGIN = "login.html"
 LOGOUT = "logout.html"
 SIGNUP = "signup.html"
 FAV_GAME = "favourite_games.html"
-FAV_IMAGE = "favourite_image.html"
+FAV_IMAGE = "fav_games.html"
 ERROR404 = "404.html"
 LIMIT = 5
 
@@ -343,8 +343,8 @@ def logout():
     except Exception as e:
         abort(404, e)
 
-@app.route("/clear_search")
-def clear_search():
+@app.route("/clear_search/<int:fav>")
+def clear_search(fav):
     try:
         session['page'] = 1
         session['genres'] = None
@@ -353,17 +353,21 @@ def clear_search():
         session['sort_asc'] = 'ASC'
         session['search_query'] = None
         session['max_pages'] = None
+        if fav == 1:
+            return redirect(url_for('favourite_games'))
         return redirect(url_for('games'))
     except Exception as e:
         abort(404, e)
 
 
-@app.route("/change_page/<int:page>")
-def change_page(page):
+@app.route("/change_page/<int:page>/<int:fav>")
+def change_page(page, fav):
     try:
         # To prevent people from just altering the page in the search bar to a non-existant page
-        if page <= session['max_pages'] and page >= 0:
+        if page <= session['max_pages'] and page > 0:
             session['page'] = page
+            if fav == 1:
+                return redirect(url_for('favourite_games'))
             return redirect(url_for('games'))
     except Exception as e:
         abort(404, e)
@@ -372,7 +376,6 @@ def change_page(page):
 @app.route("/games", methods=["POST", "GET"])
 def games():
     # try:
-    LIMIT = 5
     offset = (session['page'] - 1) * LIMIT
     page_form = PageForm()
     combined_form = CombinedForm()
@@ -453,12 +456,9 @@ def games():
         else:
             sql_query = "SELECT game_id, name, header_image FROM games ORDER BY %.8s %.4s LIMIT ? OFFSET ?;" % (session['sort_style'], session['sort_asc'])
             count_query = "SELECT COUNT(*) FROM (SELECT game_id, name, header_image FROM games);"
-        print(sql_query, count_query)
         game_info = select_database(sql_query, (LIMIT, offset))
         if not session['max_pages']:
-            print("hi")
             count_query = select_database(count_query)
-            print(count_query)
     if not session['max_pages']:
         session['max_pages'] = ceil(count_query[0][0] / LIMIT)
     page_form.page_num.validators[0].max = session['max_pages']
@@ -536,11 +536,32 @@ def single_game(game_id):
 
 
 # Displays all the games the user has tracked/favourited
-@app.route("/favourite_games/<string:username>")
+@app.route("/favourite_games")
 @login_required
-def favourite_games(username):
+def favourite_games():
     """Loads all the games the user has favourited"""
-    pass
+    offset = (session['page'] - 1) * LIMIT
+    username = current_user.username
+    game_info = FavouriteGames.query.filter_by(username=username).limit(LIMIT).offset(offset).all()
+    count_query = FavouriteGames.query.filter_by(username=username).count()
+    page_form = PageForm()
+
+    page_form.page_num.default = session['page']
+    if page_form.validate_on_submit():
+        if page_form.page_num.data:
+            session['page'] = page_form.page_num.data
+            return redirect(url_for('favourite_games'))
+        session['page'] = 1
+        return redirect(url_for('favourite_games'))
+        if not session['max_pages']:
+            count_query = select_database(count_query)
+    if not session['max_pages']:
+        session['max_pages'] = ceil(count_query[0][0] / LIMIT)
+    page_form.page_num.validators[0].max = session['max_pages']
+    page_form.process()
+    return render_template(SEARCH_GAMES, page_form=page_form, game_info=game_info, max_pages=session['max_pages'], page=session['page'])
+    
+
 
 
 if __name__ == "__main__":
