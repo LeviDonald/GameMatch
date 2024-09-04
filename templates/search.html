@@ -1,10 +1,10 @@
 {% extends "layout.html" %}
 {% block content %}
-<h2>Search</h2>
+<h2>Games</h2>
 <br>
 {% if game_info %}
-{% if page < max_pages %} <p><a href="/change_page/{{page + 1}}">NEXT</a></p> {% endif %}
-{% if page > 1 %} <p><a href="/change_page/{{page - 1}}">PREVIOUS</a></p> {% endif %}
+{% if page < max_pages %} <p><a href="/change_page/{{page + 1}}/0">NEXT</a></p> {% endif %}
+{% if page > 1 %} <p><a href="/change_page/{{page - 1}}/0">PREVIOUS</a></p> {% endif %}
 {% endif %}
 <form method="POST">
     {{ form.hidden_tag() }}

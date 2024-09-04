@@ -76,3 +76,7 @@ fieldset {
     margin-top: auto;
     margin-bottom: auto;
 }
+
+.fav_div:hover {
+    cursor: pointer;
+}

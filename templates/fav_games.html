@@ -1,58 +1,29 @@
 {% extends "layout.html" %}
 {% block content %}
-<h2>Search</h2>
+<h2>Favourites</h2>
 <br>
 {% if game_info %}
-{% if page < max_pages %} <p><a href="/change_page/{{page + 1}}">NEXT</a></p> {% endif %}
-{% if page > 1 %} <p><a href="/change_page/{{page - 1}}">PREVIOUS</a></p> {% endif %}
-{% endif %}
-<form method="POST">
-    {{ form.hidden_tag() }}
-    {{ form.sort_form.sort_style }}
-    {{ form.sort_form.sort_asc }}
-    <br>
-    {{ form.sort_form.search_query }}
-    <br>
-    <br>
-    <div>
-        {{ form.gen_form.genres }}
-    </div>
-    <div>
-        {{ form.gen_form.categories }}
-    </div>
-    <br>
-    <input type="submit" name="combined">
-</form>
+{% if page < max_pages %} <p><a href="/change_page/{{page + 1}}/1">NEXT</a></p> {% endif %}
+{% if page > 1 %} <p><a href="/change_page/{{page - 1}}/1">PREVIOUS</a></p> {% endif %}
 <form method="POST">
     {{ page_form.hidden_tag() }}
     {{ page_form.csrf_token }}
-    {{ page_form.genres }}
-    {{ page_form.categories }}
     {{ page_form.page_num }} <p>{{page}} / {{max_pages}}</p>
     {{ page_form.submit.label }}
     <input type="submit" name="page_change">
 </form>
 <hr>
+{% endif %}
 {% if game_info %}
-    {% if current_user.is_authenticated %}
-        {% for game in game_info %}
-        <div class="games" hx-get="/favourite_image/{{current_user.username}}/{{game[0]}}/0" hx-target="#favourite_{{game[0]}}" hx-swap="innerHTML" hx-trigger="load">
-            <button hx-get="/favourite_image/{{current_user.username}}/{{game[0]}}/1" hx-target="#favourite_{{game[0]}}" hx-swap="innerHTML" hx-trigger="click">favourite</button>
-            <h3><a href="/game/{{game[0]}}">{{game[1]}}</h3>
-            <img src="{{game[2]}}" loading=lazy></a>
-            <div id="favourite_{{game[0]}}">
-            </div>
+    {% for game in game_info %}
+    <div class="games" hx-get="/favourite_image/{{current_user.username}}/{{game.game_id}}/0" hx-target="#favourite_{{game.game_id}}" hx-swap="outerHTML" hx-trigger="load">
+        <h3><a href="/game/{{game.game_id}}">{{game.name}}</h3>
+        <img src="{{game.header_image}}" loading=lazy></a>
+        <div id="favourite_{{game.game_id}}">
         </div>
-        {% endfor %}
-    {% else %}
-        {% for game in game_info %}
-        <div class="games">
-            <h3><a href="/game/{{game[0]}}">{{game[1]}}</h3>
-            <img src="{{game[2]}}" loading=lazy></a>
-        </div>
-        {% endfor %}
-    {% endif %}
+    </div>
+    {% endfor %}
 {% else %}
-<p><b>No search results!</b> (Try searching for something else)</p>
+<p><b>No favourites!</b> (Go to <a href="/clear_search/0">GAMES</a> to choose favourites!)</p>
 {% endif %}
 {% endblock %}

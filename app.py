@@ -25,8 +25,8 @@ SELECTED_GAME = "selected_game.html"
 LOGIN = "login.html"
 LOGOUT = "logout.html"
 SIGNUP = "signup.html"
-FAV_GAME = "favourite_games.html"
-FAV_IMAGE = "fav_games.html"
+FAV_GAME = "fav_games.html"
+FAV_IMAGE = "fav_image.html"
 ERROR404 = "404.html"
 LIMIT = 5
 
@@ -468,7 +468,7 @@ def games():
     #     abort(404, e)
 
 
-@app.route('/favourite_image/<string:username>/<int:game_id>/<int:clicked>')
+@app.route('/favourite_image/<string:username>/<int:game_id>/<int:clicked>', methods=["POST", "GET"])
 def favourite_image(username, game_id, clicked):
     favourite_check = FavouriteGames.query.filter_by(user_id=username).all()
     for favourite in favourite_check:
@@ -477,8 +477,8 @@ def favourite_image(username, game_id, clicked):
             if clicked == 1:
                 db.session.delete(favourite)
                 db.session.commit()
-                return render_template(FAV_IMAGE, image="unfavourite")
-            return render_template(FAV_IMAGE, image="favourite")
+                return render_template(FAV_IMAGE, image="unfavourite", game_id=game_id)
+            return render_template(FAV_IMAGE, image="favourite", game_id=game_id)
     if clicked == 1:
         new_favourite = FavouriteGames()
         new_favourite.user_id = username
@@ -536,16 +536,24 @@ def single_game(game_id):
 
 
 # Displays all the games the user has tracked/favourited
-@app.route("/favourite_games")
+@app.route("/favourite_games", methods=["POST", "GET"])
 @login_required
 def favourite_games():
     """Loads all the games the user has favourited"""
     offset = (session['page'] - 1) * LIMIT
     username = current_user.username
-    game_info = FavouriteGames.query.filter_by(username=username).limit(LIMIT).offset(offset).all()
-    count_query = FavouriteGames.query.filter_by(username=username).count()
+    fav_games = FavouriteGames.query.filter_by(user_id=username).limit(LIMIT).offset(offset).all()
+    if fav_games:
+        id_list = []
+        for game in fav_games:
+            id_list.append(game.game_id)
+        game_info = Games.query.filter(Games.game_id.in_(id_list)).all()
+    else:
+        game_info = None
+    if not session['max_pages']:
+        count_query = FavouriteGames.query.filter_by(user_id=username).count()
+        session['max_pages'] = ceil(count_query / LIMIT)
     page_form = PageForm()
-
     page_form.page_num.default = session['page']
     if page_form.validate_on_submit():
         if page_form.page_num.data:
@@ -553,15 +561,9 @@ def favourite_games():
             return redirect(url_for('favourite_games'))
         session['page'] = 1
         return redirect(url_for('favourite_games'))
-        if not session['max_pages']:
-            count_query = select_database(count_query)
-    if not session['max_pages']:
-        session['max_pages'] = ceil(count_query[0][0] / LIMIT)
     page_form.page_num.validators[0].max = session['max_pages']
     page_form.process()
-    return render_template(SEARCH_GAMES, page_form=page_form, game_info=game_info, max_pages=session['max_pages'], page=session['page'])
-    
-
+    return render_template(FAV_GAME, page_form=page_form, game_info=game_info, max_pages=session['max_pages'], page=session['page'])
 
 
 if __name__ == "__main__":
