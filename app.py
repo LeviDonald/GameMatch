@@ -10,8 +10,8 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import create_engine
 from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, PasswordField, DateField, IntegerField, SelectField, FormField
-from wtforms.validators import DataRequired, Length, EqualTo, ValidationError, NumberRange
+from wtforms import StringField, SubmitField, PasswordField, DateField, IntegerField, SelectField, FormField, FileField
+from wtforms.validators import DataRequired, Length, EqualTo, ValidationError, NumberRange, regexp
 from wtforms_alchemy import QuerySelectMultipleField
 from wtforms import widgets
 
@@ -27,6 +27,7 @@ LOGOUT = "logout.html"
 SIGNUP = "signup.html"
 FAV_GAME = "fav_games.html"
 FAV_IMAGE = "fav_image.html"
+USER_PROFILE = "user_profile.html"
 ERROR404 = "404.html"
 LIMIT = 5
 
@@ -196,6 +197,10 @@ class GameDev(db.Model):
 
 
 # WTForm data
+class PFPForm(FlaskForm):
+    """WTForm for profile pictures (pfp)"""
+    img_file = FileField("Choose file", validators[regexp(u'^[^/\\]\.jpg$')])
+
 class LoginForm(FlaskForm):
     """WTForm for login.html"""
     username = StringField("Username", validators=[DataRequired(), Length(min=1, max=20, message="Must be within 1-20 characters"), UserCheck(message="Special characters not allowed",
@@ -487,6 +492,17 @@ def favourite_image(username, game_id, clicked):
         db.session.commit()
         return render_template(FAV_IMAGE, image="favourite")
     return render_template(FAV_IMAGE, image="unfavourite")
+
+
+@app.route("/profile_img", methods=["POST"])
+@login_required
+def profile_img():
+    pass
+
+
+@app.route("/similar_users")
+def similar_users():
+    pass
 
 
 @app.route("/game/<int:game_id>")

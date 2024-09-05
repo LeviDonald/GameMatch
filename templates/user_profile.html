@@ -1,0 +1,10 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2>Profile customization</h2>
+<hr>
+<h4>Profile pic change:</h4>
+<form method="POST" action="/profile_img">
+<input type="file" name="pfp">
+
+</form>
+{% endblock %}
