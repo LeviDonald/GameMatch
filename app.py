@@ -1,5 +1,6 @@
 '''Game Match Website'''
 import sqlite3
+from sys import exc_info
 from math import ceil
 import re
 from datetime import datetime
@@ -199,7 +200,9 @@ class GameDev(db.Model):
 # WTForm data
 class PFPForm(FlaskForm):
     """WTForm for profile pictures (pfp)"""
-    img_file = FileField("Choose file", validators[regexp(u'^[^/\\]\.jpg$')])
+    img_file = FileField("Choose file")
+    submit = SubmitField("Upload file")
+
 
 class LoginForm(FlaskForm):
     """WTForm for login.html"""
@@ -265,7 +268,8 @@ def load_user(user_id):
 @app.errorhandler(404)
 def error_404(exception):
     """Error 404 page. If error occurs, redirect here w/ exception"""
-    return render_template(ERROR404, exception=exception)
+    exc_type, exc_obj, exc_tb = exc_info()
+    return render_template(ERROR404, exception=exception, exc_type=exc_type, exc_obj=exc_obj, exc_tb=exc_tb)
 
 
 # Home page
@@ -347,6 +351,7 @@ def logout():
         return render_template(LOGOUT)
     except Exception as e:
         abort(404, e)
+
 
 @app.route("/clear_search/<int:fav>")
 def clear_search(fav):
@@ -475,9 +480,9 @@ def games():
 
 @app.route('/favourite_image/<string:username>/<int:game_id>/<int:clicked>', methods=["POST", "GET"])
 def favourite_image(username, game_id, clicked):
+    print(username, game_id, clicked)
     favourite_check = FavouriteGames.query.filter_by(user_id=username).all()
     for favourite in favourite_check:
-        print(game_id, favourite.game_id)
         if favourite.game_id == game_id:
             if clicked == 1:
                 db.session.delete(favourite)
@@ -490,8 +495,8 @@ def favourite_image(username, game_id, clicked):
         new_favourite.game_id = game_id
         db.session.add(new_favourite)
         db.session.commit()
-        return render_template(FAV_IMAGE, image="favourite")
-    return render_template(FAV_IMAGE, image="unfavourite")
+        return render_template(FAV_IMAGE, image="favourite", game_id=game_id)
+    return render_template(FAV_IMAGE, image="unfavourite", game_id=game_id)
 
 
 @app.route("/profile_img", methods=["POST"])
