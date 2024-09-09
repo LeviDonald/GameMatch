@@ -86,17 +86,17 @@ def commit_database(query, id=None):
         abort(404, exception)
 
 
-def remove_bad_games(ids, name):
-    """Deletes bad games based off of keywords"""
-    # Goes through each inappropriate ID
-    for i in ids:
-        # Gets every game ID which is associated with this tag
-        bad_games = select_database("SELECT {}_id FROM game_tag WHERE {}_id = ?;".format(name, name), (i,))
-        # Removes each bad game from games
-        for game in bad_games:
-            commit_database("DELETE FROM games WHERE game_id = ?;", (game[0],))
-        # Disposes of unnecessary data from bridge table
-        commit_database("DELETE FROM game_{} WHERE {}_id = ?".format(name, name), (i,))
+# def remove_bad_games(ids, name):
+#     """Deletes bad games based off of keywords"""
+#     # Goes through each inappropriate ID
+#     for i in ids:
+#         # Gets every game ID which is associated with this tag
+#         bad_games = select_database("SELECT {}_id FROM game_tag WHERE {}_id = ?;".format(name, name), (i,))
+#         # Removes each bad game from games
+#         for game in bad_games:
+#             commit_database("DELETE FROM games WHERE game_id = ?;", (game[0],))
+#         # Disposes of unnecessary data from bridge table
+#         commit_database("DELETE FROM game_{} WHERE {}_id = ?".format(name, name), (i,))
 
 
 def one_id_bugfix(sort_list):
@@ -239,8 +239,8 @@ class PageForm(FlaskForm):
     submit = SubmitField("Submit")
 
 
-class GenCatTagForm(FlaskForm):
-    """WTForm for managing genre / category / tag choices"""
+class GenCatForm(FlaskForm):
+    """WTForm for managing genre / category choices"""
     genres = CheckboxMultiField("Genres")
     categories = CheckboxMultiField("Categories")
 
@@ -253,8 +253,8 @@ class SortForm(FlaskForm):
 
 
 class CombinedForm(FlaskForm):
-    """Manages sort_styles, ASC DESC, user_input, gen/cat/tag choices"""
-    gen_form = FormField(GenCatTagForm)
+    """Manages sort_styles, ASC DESC, user_input, gen/cat choices"""
+    gen_form = FormField(GenCatForm)
     sort_form = FormField(SortForm)
     submit = SubmitField("Submit")
 
@@ -529,12 +529,12 @@ def single_game(game_id):
             self.game_id = game_id
 
         # List of applicable tables :
-        # 'genre', 'category', 'tag', 'developer', 'publisher'
+        # 'genre', 'category', 'developer', 'publisher'
         def select_bridge(self, table):
-            """Selects genre, category, tag and etc. information"""
+            """Selects genre, category and etc. information"""
             # Gets IDs from associated games' bridge table to use on the corresponding table to get names
             results = select_database("SELECT %.9s_id FROM game_%.9s WHERE game_id = %.9s;" % (table, table, self.game_id))
-            # Checks if SELECT statement returned anything, if so, add genre/category/tag/etc.'s name to result_list based off of IDs returned
+            # Checks if SELECT statement returned anything, if so, add genre/category/etc.'s name to result_list based off of IDs returned
             if results:
                 result_list = []
                 for result in results:
@@ -549,11 +549,10 @@ def single_game(game_id):
     selected_game = Game(game_id)
     game_info = selected_game.basic_info()
     genres = selected_game.select_bridge('genre')
-    tags = selected_game.select_bridge('tag')
     categories = selected_game.select_bridge('category')
     developers = selected_game.select_bridge('developer')
     publishers = selected_game.select_bridge('publisher')
-    return render_template(SELECTED_GAME, game_info=game_info, genres=genres, tags=tags, categories=categories, developers=developers, publishers=publishers)
+    return render_template(SELECTED_GAME, game_info=game_info, genres=genres, categories=categories, developers=developers, publishers=publishers)
 
 
 # Displays all the games the user has tracked/favourited
