@@ -12,7 +12,7 @@ from sqlalchemy import create_engine
 from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, PasswordField, DateField, IntegerField, SelectField, FormField, FileField
-from wtforms.validators import DataRequired, Length, EqualTo, ValidationError, NumberRange, regexp
+from wtforms.validators import DataRequired, Length, EqualTo, ValidationError, NumberRange
 from wtforms_alchemy import QuerySelectMultipleField
 from wtforms import widgets
 
@@ -35,13 +35,6 @@ LIMIT = 5
 app.config['SECRET_KEY'] = '1e5ec2a58f909c4edbe7ffb3a7dcd84d'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///gamematch.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-
-@app.before_request
-def make_session_permanent():
-    session.permanent = True
-
-
 db = SQLAlchemy(app)
 
 epic_engine = create_engine('sqlite:///gamematch.db')
@@ -84,19 +77,6 @@ def commit_database(query, id=None):
         conn.close()
     except Exception as exception:
         abort(404, exception)
-
-
-def remove_bad_games(ids, name):
-    """Deletes bad games based off of keywords"""
-    # Goes through each inappropriate ID
-    for i in ids:
-        # Gets every game ID which is associated with this tag
-        bad_games = select_database("SELECT {}_id FROM game_tag WHERE {}_id = ?;".format(name, name), (i,))
-        # Removes each bad game from games
-        for game in bad_games:
-            commit_database("DELETE FROM games WHERE game_id = ?;", (game[0],))
-        # Disposes of unnecessary data from bridge table
-        commit_database("DELETE FROM game_{} WHERE {}_id = ?".format(name, name), (i,))
 
 
 def one_id_bugfix(sort_list):
@@ -229,6 +209,7 @@ class SignForm(FlaskForm):
 
 
 class CheckboxMultiField(QuerySelectMultipleField):
+    """Manages the widget for the Checkbox widget. To be combined with CombinedForm."""
     widget = widgets.ListWidget(prefix_label=False)
     option_widget = widgets.CheckboxInput()
 
@@ -355,6 +336,7 @@ def logout():
 
 @app.route("/clear_search/<int:fav>")
 def clear_search(fav):
+    """Makes sure upon going to games page, previous search queries are refreshed."""
     try:
         session['page'] = 1
         session['genres'] = None
@@ -372,6 +354,7 @@ def clear_search(fav):
 
 @app.route("/change_page/<int:page>/<int:fav>")
 def change_page(page, fav):
+    """Checks if new page change is an acceptable number, changes page."""
     try:
         # To prevent people from just altering the page in the search bar to a non-existant page
         if page <= session['max_pages'] and page > 0:
@@ -385,22 +368,37 @@ def change_page(page, fav):
 
 @app.route("/games", methods=["POST", "GET"])
 def games():
-    # try:
+    """Manages WTForm data for genres / categories. Returns data from 'games' table in database."""
+    # Sets offset for SQL statement by getting current page and multiplying it by the limit
     offset = (session['page'] - 1) * LIMIT
+    # Initialises WTForms
     page_form = PageForm()
     combined_form = CombinedForm()
+    # Sets the information for the genres / categories form using SQLAlchemy
     combined_form.gen_form.genres.query = Genres.query.all()
     combined_form.gen_form.categories.query = Categories.query.all()
+    # Assigns the default number for the page change part of my code as the current page
     page_form.page_num.default = session['page']
+    # Manually inserts choices to style and asc/desc
     combined_form.sort_form.sort_style.choices = [('name', 'Alphabetically'), ('playtime', 'Popularity')]
     combined_form.sort_form.sort_asc.choices = [('ASC', 'Ascending'), ('DESC', 'Descending')]
+    # When form is validated:
     if page_form.validate_on_submit():
+        # Check if the user has put in an actual input
         if page_form.page_num.data:
+            # Make session['page'] = new page
             session['page'] = page_form.page_num.data
             return redirect(url_for('games'))
+    # Originally wasn't working before so I used submit but .validate_on_submit
+    # works as well.
     if combined_form.is_submitted() and 'combined' in request.form:
+        # Reset previous query + max pages as max pages will change
+        # with the new query.
         session['search_query'] = None
         session['max_pages'] = None
+        # Switches ASC and DESC around because popularity ascending
+        # will return games from the least popular to the most popular
+        # and Popularity ascending is just more logical
         if combined_form.sort_form.sort_style.data == "playtime":
             if combined_form.sort_form.sort_asc.data == "ASC":
                 combined_form.sort_form.sort_asc.data = "DESC"
@@ -409,25 +407,33 @@ def games():
         # Can't put in function format because of unique column names (e.g genre_id)
         genres = combined_form.gen_form.genres.data
         categories = combined_form.gen_form.categories.data
+        # In order to use the IN keyword in SQL statements, the data type must be a tuple
         if genres or categories:
             new_list = []
             if genres:
+                # Sorts form data into list
                 for genre in genres:
                     new_list.append(genre.genre_id)
+                # If only one item in list, there won't be an ending ',' at the end
+                # Therefore I made the one_id_bugfix function
                 session['genres'] = one_id_bugfix(tuple(new_list))
             new_list = []
             if categories:
+                # Same as genres but for categories
                 for category in categories:
                     new_list.append(category.category_id)
                 session['categories'] = one_id_bugfix(tuple(new_list))
         else:
             session['genres'] = None
             session['categories'] = None
+        # Assigns sorting options to session
         session['sort_style'] = combined_form.sort_form.sort_style.data
         session['sort_asc'] = combined_form.sort_form.sort_asc.data
         search_query = combined_form.sort_form.search_query.data
         if search_query:
+            # '%' is a special character to be used in tandem with LIKE in SQL
             session['search_query'] = f"%{search_query}%"
+        # Because this is a new query, page is set to 1 to prevent crashes
         session['page'] = 1
         return redirect(url_for('games'))
     # If user is searching using words
@@ -445,7 +451,7 @@ def games():
                 count_query = "SELECT COUNT(*) FROM (SELECT DISTINCT games.game_id, games.name, games.header_image FROM (games INNER JOIN game_category ON games.game_id = game_category.game_id) WHERE games.name LIKE ? AND game_category.category_id IN %s" % (session['categories'],)
         # If words
         else:
-            sql_query = "SELECT game_id, name, header_image FROM games WHERE name LIKE ? ORDER BY %s %s LIMIT ? OFFSET ?;" % (session['sort_style'], session['sort_asc'])
+            sql_query = "SELECT game_id, name, header_image FROM games WHERE name LIKE ? ORDER BY %s %.4s LIMIT ? OFFSET ?;" % (session['sort_style'], session['sort_asc'])
             count_query = "SELECT COUNT(*) FROM (SELECT game_id, name, header_image FROM games WHERE name LIKE ?);"
         game_info = select_database(sql_query, (session['search_query'], LIMIT, offset))
         if not session['max_pages']:
@@ -474,13 +480,11 @@ def games():
     page_form.page_num.validators[0].max = session['max_pages']
     page_form.process()
     return render_template(SEARCH_GAMES, page_form=page_form, form=combined_form, game_info=game_info, max_pages=session['max_pages'], page=session['page'])
-    # except Exception as e:
-    #     abort(404, e)
 
 
 @app.route('/favourite_image/<string:username>/<int:game_id>/<int:clicked>', methods=["POST", "GET"])
 def favourite_image(username, game_id, clicked):
-    print(username, game_id, clicked)
+    """Updates favourite games in database. Returns an image depending if an image is favourited or not."""
     favourite_check = FavouriteGames.query.filter_by(user_id=username).all()
     for favourite in favourite_check:
         if favourite.game_id == game_id:
@@ -491,6 +495,9 @@ def favourite_image(username, game_id, clicked):
             return render_template(FAV_IMAGE, image="favourite", game_id=game_id)
     if clicked == 1:
         new_favourite = FavouriteGames()
+        # Don't listen to the pylint lies
+        # Using FlaskSQLAlchemy, easily create an instance of FavouriteGames
+        # Add filled in instances to database
         new_favourite.user_id = username
         new_favourite.game_id = game_id
         db.session.add(new_favourite)
@@ -502,11 +509,13 @@ def favourite_image(username, game_id, clicked):
 @app.route("/profile_img", methods=["POST"])
 @login_required
 def profile_img():
+    """Profile management + decoration site"""
     pass
 
 
 @app.route("/similar_users")
 def similar_users():
+    """Loads a list of users with similarly liked games"""
     pass
 
 
@@ -528,13 +537,11 @@ def single_game(game_id):
             self.playtime = game_info.playtime
             self.game_id = game_id
 
-        # List of applicable tables :
-        # 'genre', 'category', 'tag', 'developer', 'publisher'
         def select_bridge(self, table):
-            """Selects genre, category, tag and etc. information"""
+            """Selects genre, category and etc. information"""
             # Gets IDs from associated games' bridge table to use on the corresponding table to get names
             results = select_database("SELECT %.9s_id FROM game_%.9s WHERE game_id = %.9s;" % (table, table, self.game_id))
-            # Checks if SELECT statement returned anything, if so, add genre/category/tag/etc.'s name to result_list based off of IDs returned
+            # Checks if SELECT statement returned anything; if so, add genre/category/etc.'s name to result_list based off of IDs returned
             if results:
                 result_list = []
                 for result in results:
@@ -556,14 +563,16 @@ def single_game(game_id):
     return render_template(SELECTED_GAME, game_info=game_info, genres=genres, tags=tags, categories=categories, developers=developers, publishers=publishers)
 
 
-# Displays all the games the user has tracked/favourited
 @app.route("/favourite_games", methods=["POST", "GET"])
 @login_required
 def favourite_games():
     """Loads all the games the user has favourited"""
+    # Calculates offset for SQL based off of current page times limit
     offset = (session['page'] - 1) * LIMIT
     username = current_user.username
+    # Returns all instances of games that the current user has favourited
     fav_games = FavouriteGames.query.filter_by(user_id=username).limit(LIMIT).offset(offset).all()
+    # If any favourites at all, get ids and then return all games
     if fav_games:
         id_list = []
         for game in fav_games:
@@ -571,8 +580,11 @@ def favourite_games():
         game_info = Games.query.filter(Games.game_id.in_(id_list)).all()
     else:
         game_info = None
+    # If max_pages hasn't been set yet
     if not session['max_pages']:
+        # Return count of all games
         count_query = FavouriteGames.query.filter_by(user_id=username).count()
+        # Divides amount of games by limit to get max pages
         session['max_pages'] = ceil(count_query / LIMIT)
     page_form = PageForm()
     page_form.page_num.default = session['page']
