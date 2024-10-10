@@ -8,13 +8,18 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <div>
-        {% include "nav.html" %}
-    </div>
-    {% block content %}
-    {% endblock %}
-    <div>
+    <header>
+        <nav class="header header_content shadow">
+            {% include "nav.html" %}
+        </nav>
+    </header>
+    <main>
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <footer>
         {% include "footer.html" %}
-    </div>
+    </footer>
 </body>
 </html>

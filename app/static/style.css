@@ -1,0 +1,251 @@
+/*************/
+/****GLOBAL***/
+/*************/
+
+@font-face {
+    font-family: coolfont;
+    src: url('JosefinSans-VariableFont_wght.ttf');
+}
+
+* {
+    text-decoration: none;
+}
+
+body {
+    margin-top: 6%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: 'Inter', sans-serif;
+    min-height: 240rem;
+    font-family: coolfont;
+    background-color: var(--clr-body-bg);
+    overflow-x: hidden; /* Prevent horizontal overflow */
+}
+
+form {
+    max-width: 800px; /* Keep this for wider forms */
+    margin: 0 auto; /* Center the form */
+    padding: 1rem; /* Add some padding for better spacing */
+}
+
+main {
+    color: var(--clr-norm-text);
+    height: 200px;
+}
+
+footer {
+    padding: 20px;
+    margin-top: auto;
+    position: relative;
+    width: 100%;
+    display: block; 
+    clear: both;
+    bottom: 0;
+    background-color: var(--clr-nav-bg);
+}
+
+.shadow {
+    box-shadow: 0px 10px 10px 0px rgba(0, 0, 0, 0.1);
+}
+
+:root {
+    --clr-body-bg: #121212;
+    --clr-norm-text: #00E0FF;
+    --clr-dark-norm-text: rgb(3, 140, 164);
+    --clr-nav-text1: rgb(127, 0, 255, 1);
+    --clr-nav-bg: #FFFFFF;
+    --clr-nav-text2: rgb(127, 0, 255, 0.6);
+    --clr-form-border: #ccc;
+    --clr-form-bg: #f9f9f9;
+
+}
+
+.text_center {
+    margin-top: 2%;
+    text-align: center;
+}
+
+.image_center {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.text_shadow {
+    text-shadow: 1px 2px #0000007F;
+}
+
+.larger_text {
+    font-size: 1.5em;
+}
+
+.submit_button {
+    margin: 0;
+    border-radius: 2rem;
+    width: 10rem;
+    transform: translateX(0); /* Reset the transform to avoid layout shift */
+}
+
+.submit_button:hover {
+    background-color: khaki;
+}
+
+fieldset {
+    font-size: 1rem; /* Increase font size to be more readable */
+}
+
+.my-multi-lines-item {
+    font-size: 14px;
+    white-space: initial;
+    display: flex;
+    height: 60px;
+    line-height: normal;
+}
+
+.my-multi-lines-text {
+    margin-top: auto;
+    margin-bottom: auto;
+}
+
+/****Login/Signup Page****/
+.login_box, .signup_box {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    row-gap: 1rem;
+    margin: 0 auto;
+    padding: 2rem;
+    background-color: var(--clr-nav-bg);
+    border-radius: 10px;
+    width: 120%;
+    max-width: 500px;
+    color: var(--clr-dark-norm-text);
+}
+
+.form_log{
+    width: 100%;
+    padding: 0.5rem;
+    border-radius: 10px;
+    background-color: var(--clr-form-bg);
+    outline: none;
+    border: 1px solid var(--clr-form-border);
+}
+
+.sign_sub, .log_sub, .form_dob {
+    width: 70%;
+    padding: 0.5rem;
+    border-radius: 10px;
+    background-color: var(--clr-form-bg);
+    outline: none;
+    border: 1px solid var(--clr-form-border);
+}
+
+
+
+
+/****Nav Bar****/
+
+.header {
+    background-color: var(--clr-nav-bg);
+    position: fixed;
+    width: 100%;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    box-sizing: border-box;
+    min-height: 4.4rem;
+}
+
+.header_content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0 30px;
+}
+
+.nav_list {
+    display: flex;
+    list-style: none;
+    align-items: center;
+    margin: 0;
+    padding: 0;
+    color: var(--clr-nav-text);
+    text-decoration: none;
+    width: 100%;
+}
+
+.nav_list > li {
+    margin-right: 45px;
+}
+
+.nav_link {
+    color: var(--clr-nav-text2);
+    font-size: 15px;
+    transition: all 0.4s;
+    position: relative;
+}
+
+.nav_link:hover,
+.nav_link:focus {
+    color: var(--clr-nav-text1);
+    font-weight: 500;
+}
+
+.auth_links {
+    margin-left: auto;
+    display: flex;
+    gap: 45px;
+}
+
+/****Games Page****/
+
+.games_title {
+    text-align: center; /* Horizontally center */
+    margin-top: 50px; /* Adjust top margin as needed */
+    margin-bottom: 20px; /* Adjust bottom margin as needed */
+}
+
+.search {
+    width: 8%;
+    padding: 1%;
+    border-radius: 20px;
+    margin: auto;
+    margin-top: 2%;
+    background-color: white;
+    outline: none;
+    border: none;
+}
+
+.search_number {
+    display: inline-block;
+}
+
+.same_line {
+    display: inline;
+}
+
+hr {
+    width: 100%;
+    max-width: 800px; /* Match the form container */
+}
+
+.games {
+    text-align: center;
+    margin: 20px 0;
+}
+
+.games img {
+    max-width: 100%; /* Ensure images do not overflow */
+    height: auto;
+}
+
+/****Home Page****/
+
+.home_div {
+    text-align: center;
+    margin-top: 5%;
+}

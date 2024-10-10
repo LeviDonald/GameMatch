@@ -1,0 +1,22 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2>{{username}}'s Profile!</h2>
+{% if pfp %}
+<img src="/static/user_images/{{pfp}}" height="100" width="100">
+{% endif %}
+<!-- If logged on, show favourite button + amount of games in common -->
+{% if current_user.is_authenticated %}
+<p>Games in common : (PLACEHOLDER)</p>
+{% if current_user.username != username %}
+<button type="button" hx-post="" hx-trigger=""></button>
+{% endif %}
+</div>
+{% endif %}
+<hr>
+{% if about_me %}
+<p>{{about_me}}</p>
+{% else %}
+<p><i>Unspecified</i></p>
+{% endif %}
+
+{% endblock %}

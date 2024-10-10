@@ -18,16 +18,15 @@
 <form method="POST">
     <div class="login_box">
         {{ form.hidden_tag() }}
-        {{ form.username.label }}
-        {{ form.username }}
+        {{ form.username.label(class="log_title") }}
+        {{ form.username(class="form_log") }}
         <br>
         <br>
-        {{ form.password.label }}
-        {{ form.password }}
+        {{ form.password.label(class="log_title") }}
+        {{ form.password(class="form_log")  }}
         <br>
         <br>
-        {{ form.submit.label }}
-        {{ form.submit }}
+        {{ form.submit(class="log_sub")  }}
     </div>
 </form>
 {% endblock %}

@@ -1,0 +1,16 @@
+<ul class="nav_list">
+    <li><a href="/" class="nav_link">HOME</a></li>
+    <li><a href="/clear_search/0" class="nav_link">GAMES</a></li>
+    {% if current_user.is_authenticated %}
+        <li>Welcome, {{current_user.username}}</li>
+        <div class="auth_links">
+            <li><a href="/logout" class="nav_link">LOGOUT</a></li>
+        </div>
+    {% endif %}
+    <div class="auth_links">
+        {% if not current_user.is_authenticated %}
+            <li><a href="/login" class="nav_link">LOGIN</a></li>
+            <li><a href="/signup" class="nav_link">SIGN UP</a></li>
+        {% endif %}
+    </div>
+</ul>

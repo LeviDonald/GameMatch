@@ -1,0 +1,51 @@
+{% extends "layout.html" %}
+{% block content %}
+<body>
+    <div class="text_center">
+        <h3 class="same_line"><b>~*~&nbsp;</b></h3>
+        <h1 class="same_line"><u>Sign up</u></h1>
+        <h3 class="same_line"><b>&nbsp;~*~</b></h3>
+        <h5>(No special characters / spaces in username)</h5>
+    </div>
+    <br>
+    {% with error_message = get_flashed_messages() %}
+    {% if error_message %}
+    <div class="text_center">
+        <p>{{error_message[0]}}</p>
+        <br>
+    </div>
+    {% endif %}
+    {% endwith %}
+    <form method="POST">
+        <div class="login_box">
+            {{ form.hidden_tag() }}
+            
+            {{ form.username.label(class="log_title") }}
+            {{ form.username(class="form_log") }}
+            {% for error in form.username.errors %}
+            {{ error }}
+            {% endfor %}
+            
+            {{ form.password.label(class="log_title") }}
+            {{ form.password(class="form_log") }}
+            {% for error in form.password.errors %}
+            {{ error }}
+            {% endfor %}
+            
+            {{ form.confirm.label(class="log_title") }}
+            {{ form.confirm(class="form_log") }}
+            {% for error in form.confirm.errors %}
+            {{ error }}
+            {% endfor %}
+            
+            {{ form.dob(class="form_dob") }}
+            {% for error in form.dob.errors %}
+            {{ error }}
+            {% endfor %}
+            <br>
+            <br>
+        </div>
+        {{ form.submit(class="sign_sub") }}
+    </form>
+</body>
+{% endblock %}
