@@ -9,6 +9,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import login_user, LoginManager, login_required, logout_user, current_user
+from sqlite3 import connect
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///gamematch.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -36,43 +37,44 @@ FAV_GAME = "fav_games.html"
 FAV_IMAGE = "fav_image.html"
 USER_PROFILE = "user_profile.html"
 ERROR404 = "404.html"
+DATABASE = "instance/gamematch.db"
 LIMIT = 5
 
 
 
 # Easy query process function (TO DO: possibly convert into class)
 # Use when using SELECT queries :)
-# def select_database(query, id=None):
-#     """Selects raw queries (SELECT)"""
-#     try:
-#         conn = sqlite3.connect(DATABASE)
-#         cursor = conn.cursor()
-#         if id:
-#             cursor.execute(query, id)
-#         else:
-#             cursor.execute(query)
-#         results = cursor.fetchall()
-#         conn.close()
-#         return results
-#     except Exception as exception:
-#         abort(404, exception)
+def select_database(query, id=None):
+    """Selects raw queries (SELECT)"""
+    try:
+        conn = connect(DATABASE)
+        cursor = conn.cursor()
+        if id:
+            cursor.execute(query, id)
+        else:
+            cursor.execute(query)
+        results = cursor.fetchall()
+        conn.close()
+        return results
+    except Exception as exception:
+        abort(404, exception)
 
 
 # Use when using queries which include:
 # UPDATE, DROP, DELETE, INSERT and etc.
-# def commit_database(query, id=None):
-#     """Commits raw queries (INSERT, DELETE etc.)"""
-#     try:
-#         conn = sqlite3.connect(DATABASE)
-#         cursor = conn.cursor()
-#         if id:
-#             cursor.execute(query, id)
-#         else:
-#             cursor.execute(query)
-#         conn.commit()
-#         conn.close()
-#     except Exception as exception:
-#         abort(404, exception)
+def commit_database(query, id=None):
+    """Commits raw queries (INSERT, DELETE etc.)"""
+    try:
+        conn = connect(DATABASE)
+        cursor = conn.cursor()
+        if id:
+            cursor.execute(query, id)
+        else:
+            cursor.execute(query)
+        conn.commit()
+        conn.close()
+    except Exception as exception:
+        abort(404, exception)
 
 
 def one_id_bugfix(sort_list):
@@ -83,11 +85,6 @@ def one_id_bugfix(sort_list):
         sort_list = f"({sort_list[0]})"
     # If multiple items, return full list
     return sort_list
-
-
-
-
-
 
 
 @login_manager.user_loader
@@ -194,7 +191,7 @@ def clear_search(fav):
         session['search_query'] = None
         session['max_pages'] = None
         if fav == 1:
-            return redirect(url_for('favourite_games'))
+            return redirect(url_for('fav_list'))
         return redirect(url_for('games'))
     except Exception as e:
         abort(404, e)
@@ -208,7 +205,7 @@ def change_page(page, fav):
         if page <= session['max_pages'] and page > 0:
             session['page'] = page
             if fav == 1:
-                return redirect(url_for('favourite_games'))
+                return redirect(url_for('fav_list'))
             return redirect(url_for('games'))
     except Exception as e:
         abort(404, e)
@@ -318,20 +315,29 @@ def games():
         else:
             sql_query = "SELECT game_id, name, header_image FROM games ORDER BY %.8s %.4s LIMIT ? OFFSET ?;" % (session['sort_style'], session['sort_asc'])
             count_query = "SELECT COUNT(*) FROM (SELECT game_id, name, header_image FROM games);"
+        # game_info[0] - ID, [1] - Name, [2] - Image link
         game_info = select_database(sql_query, (LIMIT, offset))
+        # Prevents code having to make additional operations
+        # on every page change
         if not session['max_pages']:
             count_query = select_database(count_query)
     if not session['max_pages']:
         session['max_pages'] = ceil(count_query[0][0] / LIMIT)
     page_form.page_num.validators[0].max = session['max_pages']
     page_form.process()
+    if current_user.is_authenticated:
+        fav_list = []
+        favourites = db.session.query(models.FavouriteGames).filter(models.FavouriteGames.user_id == current_user.user_id).all()
+        for favourite in favourites:
+            fav_list.append(favourite.game_id)
+        return render_template(SEARCH_GAMES, page_form=page_form, form=combined_form, game_info=game_info, max_pages=session['max_pages'], page=session['page'], fav_list=fav_list)
     return render_template(SEARCH_GAMES, page_form=page_form, form=combined_form, game_info=game_info, max_pages=session['max_pages'], page=session['page'])
 
 
-@app.route('/favourite_image/<string:username>/<int:game_id>/<int:clicked>', methods=["POST", "GET"])
-def favourite_image(username, game_id, clicked):
+@app.route('/favourite_image/<int:user_id>/<int:game_id>/<int:clicked>', methods=["POST", "GET"])
+def favourite_image(user_id, game_id, clicked):
     """Updates favourite games in database. Returns an image depending if an image is favourited or not."""
-    favourite_check = db.session.query(models.FavouriteGames).filter_by(user_id=username).all()
+    favourite_check = db.session.query(models.FavouriteGames).filter_by(user_id=int(user_id)).all()
     for favourite in favourite_check:
         if favourite.game_id == game_id:
             if clicked == 1:
@@ -344,12 +350,46 @@ def favourite_image(username, game_id, clicked):
         new_favourite = models.FavouriteGames()
         # Using FlaskSQLAlchemy, easily create an instance of FavouriteGames
         # Add filled in instances to database
-        new_favourite.user_id = username
+        new_favourite.user_id = user_id
         new_favourite.game_id = game_id
         db.session.add(new_favourite)
         db.session.commit()
         return render_template(FAV_IMAGE, image="favourite", game_id=game_id)
     return render_template(FAV_IMAGE, image="unfavourite", game_id=game_id)
+
+
+@app.route('/favourite_game/<int:game_id>/<int:link_id>', methods=["POST"])
+def favourite_game(game_id, link_id):
+    """Updates fav_list in database"""
+    game_check = db.session.query(models.Games).filter_by(game_id=game_id).first()
+    if game_check:
+        favourite_check = db.session.query(models.FavouriteGames).filter_by(user_id=current_user.user_id).filter_by(game_id=game_id).first()
+        if favourite_check:
+            flash(f"Unfavourited {game_check.name}!")
+            db.session.delete(favourite_check)
+        else:
+            favourite = models.FavouriteGames()
+            favourite.user_id = current_user.user_id
+            favourite.game_id = game_id
+            # For some dumb reason, SQLAlchemy cannot detect autoincrement
+            # so I need to find the latest ID manually
+            id_check = db.session.query(models.FavouriteGames).order_by(models.FavouriteGames.favourite_id.desc()).first()
+            if id_check:
+                favourite.favourite_id = int(id_check.favourite_id) + 1
+            else:
+                favourite.favourite_id = 1
+            db.session.add(favourite)
+        db.session.commit()
+        flash(f"Favourited {game_check.name}!")
+        if link_id == 0:
+            return redirect(url_for('games'))
+        elif link_id == 1:
+            return redirect(url_for('favourite_list'))
+        else:
+            return redirect(url_for('single_game', game_id=game_id))
+    else:
+        flash("Game with that ID does not exist!")
+        return redirect(url_for('home'))
 
 
 @app.route("/profile/<int:user_id>")
@@ -370,12 +410,6 @@ def profile_edit():
         pfp_file.file_name = secure_filename(current_user.username)
 
 
-@app.route("/similar_users")
-def similar_users():
-    """Loads a list of users with similarly liked games"""
-    pass
-
-
 @app.route("/game/<int:game_id>")
 def single_game(game_id):
     """Individual game information page"""
@@ -383,7 +417,7 @@ def single_game(game_id):
         """Automatically does SQL queries to build information of a single game"""
         def __init__(self, game_id):
             # Gets basic info from the games table
-            game_info = db.session.query(models.Games).filter(Games.game_id == game_id).first()
+            game_info = db.session.query(models.Games).filter(models.Games.game_id == game_id).first()
             self.name = game_info.name
             self.date = game_info.release_date
             self.price = game_info.price
@@ -407,21 +441,23 @@ def single_game(game_id):
             else:
                 return None
 
-        def basic_info(self):
-            """Returns information from games"""
-            return [self.name, self.date, self.price, self.synopsis, self.header, self.website, self.notes, self.playtime]
     selected_game = Game(game_id)
-    game_info = selected_game.basic_info()
     genres = selected_game.select_bridge('genre')
     categories = selected_game.select_bridge('category')
     developers = selected_game.select_bridge('developer')
     publishers = selected_game.select_bridge('publisher')
-    return render_template(SELECTED_GAME, game_info=game_info, genres=genres, categories=categories, developers=developers, publishers=publishers)
+    if current_user.is_authenticated:
+        fav_list = []
+        favourites = db.session.query(models.FavouriteGames).filter(models.FavouriteGames.user_id == current_user.user_id).all()
+        for favourite in favourites:
+            fav_list.append(favourite.game_id)
+        return render_template(SELECTED_GAME, game_info=selected_game, genres=genres, categories=categories, developers=developers, publishers=publishers, fav_list=fav_list)
+    return render_template(SELECTED_GAME, game_info=selected_game, genres=genres, categories=categories, developers=developers, publishers=publishers)
 
 
-@app.route("/favourite_games", methods=["POST", "GET"])
+@app.route("/fav_list", methods=["POST", "GET"])
 @login_required
-def favourite_games():
+def favourite_list():
     """Loads all the games the user has favourited"""
     # Calculates offset for SQL based off of current page times limit
     offset = (session['page'] - 1) * LIMIT
@@ -433,7 +469,7 @@ def favourite_games():
         id_list = []
         for game in fav_games:
             id_list.append(game.game_id)
-        game_info = db.session.query(Games).filter(Games.game_id.in_(id_list)).all()
+        game_info = db.session.query(models.Games).filter(models.Games.game_id.in_(id_list)).all()
     else:
         game_info = None
     # If max_pages hasn't been set yet
@@ -442,17 +478,18 @@ def favourite_games():
         count_query = db.session.query(models.FavouriteGames).filter_by(user_id=username).count()
         # Divides amount of games by limit to get max pages
         session['max_pages'] = ceil(count_query / LIMIT)
-    page_form = PageForm()
+    page_form = forms.PageForm()
     page_form.page_num.default = session['page']
     if page_form.validate_on_submit():
         if page_form.page_num.data:
             session['page'] = page_form.page_num.data
-            return redirect(url_for('favourite_games'))
+            return redirect(url_for('fav_list'))
         session['page'] = 1
-        return redirect(url_for('favourite_games'))
+        return redirect(url_for('fav_list'))
     page_form.page_num.validators[0].max = session['max_pages']
     page_form.process()
     return render_template(FAV_GAME, page_form=page_form, game_info=game_info, max_pages=session['max_pages'], page=session['page'])
+
 
 if __name__ == "__main__":
     app.run(debug=True)

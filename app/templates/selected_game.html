@@ -1,44 +1,61 @@
 {% extends "layout.html" %}
 {% block content %}
-<h1 class="text_center text_shadow">{{game_info[0]}}</h1>
-<img src="{{game_info[4]}}" loading="lazy" class="image_center image_border">
+<h1 class="text_center game_shadow">{{game_info.name}}</h1>
+<img src="{{game_info.header}}" loading="lazy" class="image_center image_border game_image">
 <br>
 <br>
-{% if game_info[6] %}
+{% with message = get_flashed_messages() %}
+{% if message %}
+<div class="search_div">
+    <p><i>{{message[0]}}</i></p>
+</div>
+{% endif %}
+{% endwith %} 
+{% if game_info.notes %}
 <h2 class="text_center"><u>WARNING</u></h2>
-<p class="text_center"><i>{{game_info[6]}}</i></p>
+<p class="text_center"><i>{{game_info.notes}}</i></p>
+{% endif %}
+{% if current_user.is_authenticated %}
+<form method="POST" action="{{ url_for('favourite_game', game_id=game_info.game_id, link_id=2) }}">
+    <hr>
+    <div class="container">
+        <button type="submit" class="button_center {% if game_info.game_id in fav_list %}fav_button_fav{% else%}fav_button{% endif %}">&heartsuit; - <b><i>{{game_info.name}}</i></b></button>
+    </div>
+    <hr>
+</form>
 {% endif %}
 <div class="same_line">
-    <h3 class="same_line">Release date - </h3><p class="same_line">{{game_info[1]}}</p>
+    <h3 class="same_line">Release date - </h3><p class="same_line">{{game_info.date}}</p>
 </div>
 <br>
 <br>
 <div class="same_line">
-    <h3 class="same_line">Price - </h3><p class="same_line">${{game_info[2]}}</p>
+    <h3 class="same_line">Price - </h3><p class="same_line">${{game_info.price}}</p>
 </div>
 <br>
 <br>
 <div class="same_line">
-    <h3 class="same_line">Developers - </h3>
+    <h3>Developers: </h3>
     {% for developer in developers %}
-    <p class="same_line">{{developer}} </p>
+    <p>{{developer}} </p>
     {% endfor %}
-    <p class="same_line">| </p>
-    <h3 class="same_line">Publishers - </h3>
+    <br>
+    <h3>Publishers: </h3>
     {% for publisher in publishers %}
     <p class="same_line">{{publisher}} </p>
     {% endfor %}
 </div>
 <br>
 <br>
+<br>
 <div class="same_line">
-    <h3 class="same_line">Average playtime - </h3><p class="same_line">{{game_info[7]}} minutes</p>
+    <h3 class="same_line">Average playtime - </h3><p class="same_line">{{game_info.playtime}} minutes</p>
 </div>
-{% if game_info[5] %}
+{% if game_info.website %}
 <br>
 <br>
 <div class="same_line">
-    <h3 class="same_line">Website - </h3><p class="same_line"><a href="{{game_info[5]}}">Click here!</a></p>
+    <h3 class="same_line">Website - </h3><p class="same_line"><a href="{{game_info.website}}">Click here!</a></p>
 </div>
 {% endif %}
 <br>

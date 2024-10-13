@@ -4,6 +4,7 @@ from sqlalchemy import create_engine
 
 epic_engine = create_engine('sqlite:///gamematch.db')
 
+
 # Setting up tables to be used with SQLAlchemy
 class Users(db.Model, UserMixin):
     """users SQLAlchemy Table"""

@@ -15,18 +15,20 @@
 </div>
 {% endif %}
 {% endwith %}
-<form method="POST">
-    <div class="login_box">
-        {{ form.hidden_tag() }}
-        {{ form.username.label(class="log_title") }}
-        {{ form.username(class="form_log") }}
-        <br>
-        <br>
-        {{ form.password.label(class="log_title") }}
-        {{ form.password(class="form_log")  }}
-        <br>
-        <br>
-        {{ form.submit(class="log_sub")  }}
-    </div>
-</form>
+<div class="search_div leftie_login">
+    <form method="POST">
+        <div class="login_box">
+            {{ form.hidden_tag() }}
+            {{ form.username.label(class="log_title") }}
+            {{ form.username(class="form_log") }}
+            <br>
+            <br>
+            {{ form.password.label(class="log_title") }}
+            {{ form.password(class="form_log")  }}
+            <br>
+            <br>
+            {{ form.submit(class="log_sub", value="Log in!") }}
+        </div>
+    </form>
+</div>
 {% endblock %}
