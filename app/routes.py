@@ -19,6 +19,8 @@ app.config['UPLOAD_EXTENSIONS'] = ['.jpg', '.png', '.gif']
 app.secret_key = '1e5ec2a58f909c4edbe7ffb3a7dcd84d'
 
 db = SQLAlchemy(app)
+db.Model.metadata.reflect(db.engine)
+
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -37,7 +39,7 @@ FAV_GAME = "fav_games.html"
 FAV_IMAGE = "fav_image.html"
 USER_PROFILE = "user_profile.html"
 ERROR404 = "404.html"
-DATABASE = "instance/gamematch.db"
+DATABASE = "gamematch.db"
 LIMIT = 5
 
 
@@ -191,7 +193,7 @@ def clear_search(fav):
         session['search_query'] = None
         session['max_pages'] = None
         if fav == 1:
-            return redirect(url_for('fav_list'))
+            return redirect(url_for('favourite_list'))
         return redirect(url_for('games'))
     except Exception as e:
         abort(404, e)
@@ -205,7 +207,7 @@ def change_page(page, fav):
         if page <= session['max_pages'] and page > 0:
             session['page'] = page
             if fav == 1:
-                return redirect(url_for('fav_list'))
+                return redirect(url_for('favourite_list'))
             return redirect(url_for('games'))
     except Exception as e:
         abort(404, e)
@@ -326,11 +328,11 @@ def games():
     page_form.page_num.validators[0].max = session['max_pages']
     page_form.process()
     if current_user.is_authenticated:
-        fav_list = []
+        favourite_list = []
         favourites = db.session.query(models.FavouriteGames).filter(models.FavouriteGames.user_id == current_user.user_id).all()
         for favourite in favourites:
-            fav_list.append(favourite.game_id)
-        return render_template(SEARCH_GAMES, page_form=page_form, form=combined_form, game_info=game_info, max_pages=session['max_pages'], page=session['page'], fav_list=fav_list)
+            favourite_list.append(favourite.game_id)
+        return render_template(SEARCH_GAMES, page_form=page_form, form=combined_form, game_info=game_info, max_pages=session['max_pages'], page=session['page'], fav_list=favourite_list)
     return render_template(SEARCH_GAMES, page_form=page_form, form=combined_form, game_info=game_info, max_pages=session['max_pages'], page=session['page'])
 
 
@@ -360,7 +362,7 @@ def favourite_image(user_id, game_id, clicked):
 
 @app.route('/favourite_game/<int:game_id>/<int:link_id>', methods=["POST"])
 def favourite_game(game_id, link_id):
-    """Updates fav_list in database"""
+    """Updates favourite_list in database"""
     game_check = db.session.query(models.Games).filter_by(game_id=game_id).first()
     if game_check:
         favourite_check = db.session.query(models.FavouriteGames).filter_by(user_id=current_user.user_id).filter_by(game_id=game_id).first()
@@ -447,23 +449,22 @@ def single_game(game_id):
     developers = selected_game.select_bridge('developer')
     publishers = selected_game.select_bridge('publisher')
     if current_user.is_authenticated:
-        fav_list = []
+        favourite_list = []
         favourites = db.session.query(models.FavouriteGames).filter(models.FavouriteGames.user_id == current_user.user_id).all()
         for favourite in favourites:
-            fav_list.append(favourite.game_id)
-        return render_template(SELECTED_GAME, game_info=selected_game, genres=genres, categories=categories, developers=developers, publishers=publishers, fav_list=fav_list)
+            favourite_list.append(favourite.game_id)
+        return render_template(SELECTED_GAME, game_info=selected_game, genres=genres, categories=categories, developers=developers, publishers=publishers, fav_list=favourite_list)
     return render_template(SELECTED_GAME, game_info=selected_game, genres=genres, categories=categories, developers=developers, publishers=publishers)
 
 
-@app.route("/fav_list", methods=["POST", "GET"])
+@app.route("/favourite_list", methods=["POST", "GET"])
 @login_required
 def favourite_list():
     """Loads all the games the user has favourited"""
     # Calculates offset for SQL based off of current page times limit
     offset = (session['page'] - 1) * LIMIT
-    username = current_user.username
     # Returns all instances of games that the current user has favourited
-    fav_games = db.session.query(models.FavouriteGames).filter_by(user_id=username).limit(LIMIT).offset(offset).all()
+    fav_games = db.session.query(models.FavouriteGames).filter_by(user_id=current_user.user_id).limit(LIMIT).offset(offset).all()
     # If any favourites at all, get ids and then return all games
     if fav_games:
         id_list = []
@@ -475,7 +476,7 @@ def favourite_list():
     # If max_pages hasn't been set yet
     if not session['max_pages']:
         # Return count of all games
-        count_query = db.session.query(models.FavouriteGames).filter_by(user_id=username).count()
+        count_query = db.session.query(models.FavouriteGames).filter_by(user_id=current_user.user_id).count()
         # Divides amount of games by limit to get max pages
         session['max_pages'] = ceil(count_query / LIMIT)
     page_form = forms.PageForm()
@@ -483,12 +484,16 @@ def favourite_list():
     if page_form.validate_on_submit():
         if page_form.page_num.data:
             session['page'] = page_form.page_num.data
-            return redirect(url_for('fav_list'))
+            return redirect(url_for('favourite_list'))
         session['page'] = 1
-        return redirect(url_for('fav_list'))
+        return redirect(url_for('favourite_list'))
     page_form.page_num.validators[0].max = session['max_pages']
     page_form.process()
-    return render_template(FAV_GAME, page_form=page_form, game_info=game_info, max_pages=session['max_pages'], page=session['page'])
+    favourite_list = []
+    favourites = db.session.query(models.FavouriteGames).filter(models.FavouriteGames.user_id == current_user.user_id).all()
+    for favourite in favourites:
+        favourite_list.append(favourite.game_id)
+    return render_template(FAV_GAME, fav_list=favourite_list, page_form=page_form, game_info=game_info, max_pages=session['max_pages'], page=session['page'])
 
 
 if __name__ == "__main__":

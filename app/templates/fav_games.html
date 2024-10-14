@@ -1,29 +1,69 @@
 {% extends "layout.html" %}
 {% block content %}
-<h2>Favourites</h2>
-<br>
-{% if game_info %}
-{% if page < max_pages %} <p><a href="/change_page/{{page + 1}}/1">NEXT</a></p> {% endif %}
-{% if page > 1 %} <p><a href="/change_page/{{page - 1}}/1">PREVIOUS</a></p> {% endif %}
-<form method="POST">
-    {{ page_form.hidden_tag() }}
-    {{ page_form.csrf_token }}
-    {{ page_form.page_num }} <p>{{page}} / {{max_pages}}</p>
-    {{ page_form.submit.label }}
-    <input type="submit" name="page_change">
-</form>
-<hr>
+<div class="search_div">
+    <h2 class="game_shadow">Favourites</h2>
+    <br>
+</div>
+{% with message = get_flashed_messages() %}
+{% if message %}
+<div class="search_div">
+    <p><i>{{message[0]}}</i></p>
+</div>
 {% endif %}
-{% if game_info %}
-    {% for game in game_info %}
-    <div class="games" hx-get="/favourite_image/{{current_user.username}}/{{game.game_id}}/0" hx-target="#favourite_{{game.game_id}}" hx-swap="outerHTML" hx-trigger="load">
-        <h3><a href="/game/{{game.game_id}}">{{game.name}}</h3>
-        <img src="{{game.header_image}}" loading=lazy></a>
-        <div id="favourite_{{game.game_id}}">
+{% endwith %}
+<div class="search_div">
+    <form method="POST">
+        {{ page_form.hidden_tag() }}
+        {{ page_form.csrf_token }}
+        {{ page_form.genres }}
+        {{ page_form.categories }}
+        <div class="search_div">
+            <p><b>PAGE</b> : <i>{{page}} / {{max_pages}}</i></p>
         </div>
-    </div>
-    {% endfor %}
+        <div class="search_div">
+            {{ page_form.page_num }}
+        </div>
+        <div class="search_div increase_padding">
+            <input class="page_button" type="submit" name="page_change" value="Change page">
+        </div>
+    </form>
+</div>
+<div class="search_div">
+    {% if game_info %}
+    {% if page < max_pages %} <p><a href="/change_page/{{page + 1}}/0" class="game_link">NEXT</a></p> {% endif %}
+    {% if page < max_pages and page > 1 %}<p class="next_prev">&nbsp;|&nbsp;</p>{% endif %}
+    {% if page > 1 %} <p><a href="/change_page/{{page - 1}}/0" class="game_link">PREVIOUS</a></p> {% endif %}
+    {% endif %}
+</div>
+<p></p>
+<hr class="search_hr_mini">
+{% if game_info %}
+    <ul class="leftie">
+        {% for game in game_info %}
+        <div>
+            <li class="games">
+                <h3><a href="/game/{{game.game_id}}" class="game_link">{{game.name}}</h3>
+                <img src="{{game.header_image}}" loading=lazy class="search_image"></a>
+                <div>
+                    <form method="POST" action="{{ url_for('favourite_game', game_id=game.game_id, link_id=1) }}">
+                        <div class="search_div">
+                            <button type="submit" class="{% if game.game_id in fav_list %}fav_button_fav{% else %}fav_button{% endif %}">&heartsuit; - <b><i>{{game.name}}</i></b></button>
+                        </div>
+                    </form>
+                </div>
+            </li>
+        </div>
+        {% endfor %}
+    </ul>
 {% else %}
-<p><b>No favourites!</b> (Go to <a href="/clear_search/0">GAMES</a> to choose favourites!)</p>
+<p><b>No search results!</b> (Try searching for something else)</p>
 {% endif %}
+<hr class="search_hr_mini">
+<div class="search_div">
+    {% if game_info %}
+    {% if page < max_pages %} <p><a href="/change_page/{{page + 1}}/0" class="game_link">NEXT</a></p> {% endif %}
+    {% if page < max_pages and page > 1 %}<p class="next_prev">&nbsp;|&nbsp;</p>{% endif %}
+    {% if page > 1 %} <p><a href="/change_page/{{page - 1}}/0" class="game_link">PREVIOUS</a></p> {% endif %}
+    {% endif %}
+</div>
 {% endblock %}
