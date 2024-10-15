@@ -10,8 +10,9 @@ from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import login_user, LoginManager, login_required, logout_user, current_user
 from sqlite3 import connect
+from os.path import abspath
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///gamematch.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{abspath('app/gamematch.db')}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # Disallow image upload sizes beyond 1MB
 app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024
@@ -20,7 +21,6 @@ app.secret_key = '1e5ec2a58f909c4edbe7ffb3a7dcd84d'
 
 db = SQLAlchemy(app)
 db.Model.metadata.reflect(db.engine)
-
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -39,9 +39,8 @@ FAV_GAME = "fav_games.html"
 FAV_IMAGE = "fav_image.html"
 USER_PROFILE = "user_profile.html"
 ERROR404 = "404.html"
-DATABASE = "gamematch.db"
+DATABASE = "app/gamematch.db"
 LIMIT = 5
-
 
 
 # Easy query process function (TO DO: possibly convert into class)
