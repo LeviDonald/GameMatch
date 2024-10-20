@@ -78,6 +78,34 @@ def commit_database(query, id=None):
         abort(404, exception)
 
 
+class DatabaseQuery:
+    """Flask SQLAlchemy query builder"""
+    def __init__(self, model, join_model, model_args):
+        self.model = model
+        self.join_model = join_model
+        self.model_args = model_args
+        self.query = model.query
+        return self.query_join()
+
+    def query_join(self):
+        if self.model:
+            for i in self.join_model:
+                self.query = self.query.join(i)
+        return self.query_filter()
+
+    def query_filter(self):
+        for i in range(len(self.model_args)):
+            self.query = self.query.filter(self.model_args[i])
+        return self.query_results()
+
+    def query_results(self):
+        offset = (session['page'] - 1) * LIMIT
+        results = self.query.limit(LIMIT).offset(offset).distinct().all()
+        if not session['max_pages']:
+            session['max_pages'] = self.query.distinct().count()
+        return results
+
+
 def one_id_bugfix(sort_list):
     """Removes the tuple comma at the end to make SQL not break"""
     # If only one item in tuple
@@ -260,13 +288,13 @@ def games():
                     new_list.append(genre.genre_id)
                 # If only one item in list, there won't be an ending ',' at the end
                 # Therefore I made the one_id_bugfix function
-                session['genres'] = one_id_bugfix(tuple(new_list))
+                session['genres'] = tuple(new_list)
             new_list = []
             if categories:
                 # Same as genres but for categories
                 for category in categories:
                     new_list.append(category.category_id)
-                session['categories'] = one_id_bugfix(tuple(new_list))
+                session['categories'] = tuple(new_list)
         else:
             session['genres'] = None
             session['categories'] = None
@@ -284,9 +312,10 @@ def games():
         # If words + genres
         if session['genres'] or session['categories']:
             if session['genres'] and session['categories']:
-                sql_query = db.session.query(models.Games, models.GameGen, models.GameCat).filter(models.Games.game_id == models.GameGen.game_id).filter(models.Games.game_id == models.GameCat.game_id).filter(models.Games.name.like(session['search_query'])).filter(models.GameGen.genre_id.in_(session['genres'])).filter(models.GameCat.category_id.in_(session['categories'])).limit(LIMIT).offset(offset).distinct()
-                sql_query = "SELECT DISTINCT games.game_id, games.name, games.header_image FROM ((games INNER JOIN game_genre ON games.game_id = game_genre.game_id) INNER JOIN game_category ON games.game_id = game_category.game_id) WHERE games.name LIKE ? AND game_genre.genre_id IN %s AND game_category.category_id IN %s ORDER BY %.8s %.4s LIMIT ? OFFSET ?;" % (session['genres'], session['categories'], session['sort_style'], session['sort_asc'])
-                count_query = "SELECT COUNT(*) FROM (SELECT DISTINCT games.game_id, games.name, games.header_image FROM ((games INNER JOIN game_genre ON games.game_id = game_genre.game_id) INNER JOIN game_category ON games.game_id = game_category.game_id) WHERE games.name LIKE ? AND game_genre.genre_id IN %s AND game_category.category_id IN %s);" % (session['genres'], session['categories'])
+                sql_query = DatabaseQuery(models.Games, join_model=(models.GameGen.game_id, models.GameCat.game_id), model_args=(models.Games.name.like(session['search_query']), models.GameGen.genre_id.in_(session['genres']), models.GameCat.category_id.in_(session['categories'])))
+                # sql_query = db.session.query(models.Games, models.GameGen, models.GameCat).filter(models.Games.game_id == models.GameGen.game_id).filter(models.Games.game_id == models.GameCat.game_id).filter(models.Games.name.like(session['search_query'])).filter(models.GameGen.genre_id.in_(session['genres'])).filter(models.GameCat.category_id.in_(session['categories'])).limit(LIMIT).offset(offset).distinct()
+                # sql_query = "SELECT DISTINCT games.game_id, games.name, games.header_image FROM ((games INNER JOIN game_genre ON games.game_id = game_genre.game_id) INNER JOIN game_category ON games.game_id = game_category.game_id) WHERE games.name LIKE ? AND game_genre.genre_id IN %s AND game_category.category_id IN %s ORDER BY %.8s %.4s LIMIT ? OFFSET ?;" % (session['genres'], session['categories'], session['sort_style'], session['sort_asc'])
+                # count_query = "SELECT COUNT(*) FROM (SELECT DISTINCT games.game_id, games.name, games.header_image FROM ((games INNER JOIN game_genre ON games.game_id = game_genre.game_id) INNER JOIN game_category ON games.game_id = game_category.game_id) WHERE games.name LIKE ? AND game_genre.genre_id IN %s AND game_category.category_id IN %s);" % (session['genres'], session['categories'])
             elif session['genres']:
                 sql_query = "SELECT DISTINCT games.game_id, games.name, games.header_image FROM (games INNER JOIN game_genre ON games.game_id = game_genre.game_id) WHERE games.name LIKE ? AND game_genre.genre_id IN %s ORDER BY %.8s %.4s LIMIT ? OFFSET ?;" % (session['genres'], session['sort_style'], session['sort_asc'])
                 count_query = "SELECT COUNT(*) FROM (SELECT DISTINCT games.game_id, games.name, games.header_image FROM (games INNER JOIN game_genre ON games.game_id = game_genre.game_id) WHERE games.name LIKE ? AND game_genre.genre_id IN %s)" % (session['genres'],)
@@ -306,6 +335,7 @@ def games():
             if session['genres'] and session['categories']:
                 sql_query = "SELECT DISTINCT games.game_id, games.name, games.header_image FROM ((games INNER JOIN game_genre ON games.game_id = game_genre.game_id) INNER JOIN game_category ON games.game_id = game_category.game_id) WHERE game_genre.genre_id IN %s AND game_category.category_id IN %s ORDER BY %.8s %.4s LIMIT ? OFFSET ?;" % (session['genres'], session['categories'], session['sort_style'], session['sort_asc'])
                 count_query = "SELECT COUNT(*) FROM (SELECT DISTINCT games.game_id, games.name, games.header_image FROM ((games INNER JOIN game_genre ON games.game_id = game_genre.game_id) INNER JOIN game_category ON games.game_id = game_category.game_id) WHERE game_genre.genre_id IN %s AND game_category.category_id IN %s);" % (session['genres'], session['categories'])
+                print(count_query)
             elif session['genres']:
                 sql_query = "SELECT DISTINCT games.game_id, games.name, games.header_image FROM (games INNER JOIN game_genre ON games.game_id = game_genre.game_id) WHERE game_genre.genre_id IN %s ORDER BY %.8s %.4s LIMIT ? OFFSET ?;" % (session['genres'], session['sort_style'], session['sort_asc'])
                 count_query = "SELECT COUNT(*) FROM (SELECT DISTINCT games.game_id, games.name, games.header_image FROM (games INNER JOIN game_genre ON games.game_id = game_genre.game_id) WHERE game_genre.genre_id IN %s);" % (session['genres'],)
