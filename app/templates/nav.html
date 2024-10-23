@@ -1,17 +1,17 @@
 <ul class="nav_list">
-    <li><a href="/" class="nav_link">HOME</a></li>
-    <li><a href="/clear_search/0" class="nav_link">GAMES</a></li>
+    <li><a href="/" class="nav_link">&#127968; HOME</a></li>
+    <li><a href="/clear_search/0" class="nav_link">&#128126; GAMES</a></li>
     {% if current_user.is_authenticated %}
-        <li>Welcome, {{current_user.username}}</li>
+        <li>Welcome, {{current_user.username}} &#128075;</li>
         <div class="auth_links">
-            <li><a href="/clear_search/1">FAVOURITES</a></li>
+            <li><a href="/clear_search/1">FAVOURITES &#128157;</a></li>
             <li><a href="/logout" class="nav_link">LOGOUT</a></li>
         </div>
     {% endif %}
     {% if not current_user.is_authenticated %}
     <div class="auth_links">
-            <li><a href="/login" class="nav_link">LOGIN</a></li>
-            <li><a href="/signup" class="nav_link">SIGN UP</a></li>
+            <li><a href="/login" class="nav_link">LOGIN &#128100;</a></li>
+            <li><a href="/signup" class="nav_link">SIGN UP &#128221;</a></li>
     </div>
     {% endif %}
 </ul>
