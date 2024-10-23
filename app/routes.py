@@ -422,12 +422,11 @@ def favourite_game(game_id, link_id):
         return redirect(url_for('home'))
 
 
-@app.route("/profile/<int:user_id>")
-def profile(user_id):
-    """View users profiles"""
-    follow_form = forms.FollowForm()
-    user_data = db.session.query(models.Users).filter_by(user_id=user_id).first()
-    return render_template(USER_PROFILE, username=user_data.username, pfp=user_data.pfp, about_me=user_data.about, discord=user_data.discord)
+# @app.route("/profile/<int:user_id>")
+# def profile(user_id):
+#     """View users profiles"""
+#     user_data = db.session.query(models.Users).filter_by(user_id=user_id).first()
+#     return render_template(USER_PROFILE, username=user_data.username, pfp=user_data.pfp, about_me=user_data.about, discord=user_data.discord)
 
 
 @app.route("/profile-edit", methods=["POST"])

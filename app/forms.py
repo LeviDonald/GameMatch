@@ -1,9 +1,9 @@
+from re import search
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, PasswordField, DateField, IntegerField, SelectField, FormField, FileField
+from wtforms import StringField, SubmitField, PasswordField, IntegerField
+from wtforms import SelectField, FormField, FileField, widgets, DateField
 from wtforms.validators import DataRequired, Length, EqualTo, NumberRange, ValidationError
 from wtforms_alchemy import QuerySelectMultipleField
-from wtforms import widgets
-from re import search, compile
 
 
 class UserCheck:
@@ -31,43 +31,96 @@ class UserCheck:
 class ProfileForm(FlaskForm):
     """WTForm for profile pictures (pfp)"""
     img_file = FileField("Choose file")
-    about_me = StringField("About me", validators=[Length(min=1, max=150, message="Must be within 1-150 characters")])
-    discord_name = StringField("Discord Username", valdiators=[Length(min=2, max=32, message="Must be within 2-37 characters as per discord username rules")])
-    discord_id = IntegerField("Discord ID", validators=[NumberRange(min=4, max=4, message="Username ID requires 4 numbers")])
+    about_me = StringField("About me", validators=[Length(min=1, max=150,
+                           message="Must be within 1-150 characters")])
+    discord_name = StringField("Discord Username", valdiators=[Length(min=2,
+                               max=32, message="Must be within 2-37 "
+                               "characters as per discord username rules")])
+    discord_id = IntegerField("Discord ID", validators=[NumberRange(min=4,
+                                                        max=4,
+                                                        message="Username ID "
+                                                        "requires 4 numbers")])
     submit = SubmitField("Upload file")
-
-
-class FollowForm(FlaskForm):
-    """Checks if user has followed"""
-    submit = SubmitField()
 
 
 class LoginForm(FlaskForm):
     """WTForm for login.html"""
-    username = StringField("Username", validators=[DataRequired(), Length(min=1, max=20, message="Must be within 1-20 characters"), UserCheck(message="Special characters not allowed",
-                  banned=['root', 'admin', 'sys', 'administrator'],
-                  regex="^(?=.*[-+_!@#$%^&*., ?]) ")])
-    password = PasswordField("Password", validators=[DataRequired(), Length(min=1, max=20, message="Must be within 1-20 characters"), UserCheck(message="Special characters not allowed",
-                  banned=['root', 'admin', 'sys', 'administrator'],
-                  regex="^(?=.*[-+_!@#$%^&*., ?]) ")])
+    username = StringField("Username",
+                           validators=[DataRequired(),
+                                       Length(min=1, max=20,
+                                       message="Must be within "
+                                       "1-20 characters"),
+                                       UserCheck(message="Special "
+                                       "characters not allowed",
+                                                 banned=['root', 'admin',
+                                                         'sys',
+                                                         'administrator'],
+                                                 regex="^(?=.*[-+_!@#"
+                                                 "$%^&*., ?]) ")])
+    password = PasswordField("Password", validators=[DataRequired(),
+                                                     Length(min=1, max=20,
+                                                            message="Must be "
+                                                            "within 1-20"
+                                                            " characters"),
+                                                     UserCheck(
+                                                        message="Special "
+                                                        "characters not"
+                                                        " allowed",
+                                                        banned=['root',
+                                                                'admin',
+                                                                'sys',
+                                                                'admini'
+                                                                'strator'],
+                                                        regex="^(?=.*[-+_!@#$"
+                                                        "%^&*., ?]) ")])
     submit = SubmitField("Submit")
 
 
 class SignForm(FlaskForm):
     """WTForm for signup.html"""
-    username = StringField("Username", validators=[DataRequired(), Length(min=1, max=20, message="Must be within 1-20 characters"), UserCheck(message="Special characters not allowed",
-                  banned=['root', 'admin', 'sys', 'administrator'],
-                  regex="^(?=.*[-+_!@#$%^&*., ?]) ")])
-    password = PasswordField("Password", validators=[DataRequired(), Length(min=6, max=20, message="Must be within 6-20 characters"), EqualTo('confirm', message="Both password and reconfirm password must be the same"), UserCheck(message="Special characters not allowed",
-                  banned=['root', 'admin', 'sys', 'administrator'],
-                  regex="^(?=.*[-+_!@#$%^&*., ?]) ")])
-    confirm = PasswordField("Reconfirm password", validators=[DataRequired(), Length(min=6, max=20,)])
+    username = StringField("Username", validators=[DataRequired(),
+                                                   Length(min=1, max=20,
+                                                          message="Must be"
+                                                          " within 1-20"
+                                                          " characters"),
+                                                   UserCheck(message="Special"
+                                                             " characters "
+                                                             "not allowed",
+                                                   banned=['root', 'admin',
+                                                           'sys',
+                                                           'administrator'],
+                                                   regex="^(?=.*[-+_!@#"
+                                                   "$%^&*., ?]) ")])
+    password = PasswordField("Password", validators=[DataRequired(),
+                                                     Length(min=6, max=20,
+                                                            message="Must be "
+                                                            "within 6-20 "
+                                                            "characters"),
+                                                     EqualTo('confirm',
+                                                             message="Both "
+                                                             "password and "
+                                                             "reconfirm "
+                                                             "password must "
+                                                             "be the same"),
+                                                     UserCheck(
+                                                         message="Special "
+                                                         "characters not "
+                                                         "allowed",
+                                                     banned=['root', 'admin',
+                                                             'sys',
+                                                             'administrator'],
+                                                     regex="^(?=.*[-+_!@#$%"
+                                                     "^&*., ?]) ")])
+    confirm = PasswordField("Reconfirm password", validators=[DataRequired(),
+                                                              Length(min=6,
+                                                                     max=20,)])
     dob = DateField('D.O.B', validators=[DataRequired()])
     submit = SubmitField("Change page")
 
 
 class CheckboxMultiField(QuerySelectMultipleField):
-    """Manages the widget for the Checkbox widget. To be combined with CombinedForm."""
+    """Manages the widget for the Checkbox widget. To be combined with
+    CombinedForm."""
     widget = widgets.ListWidget(prefix_label=False)
     option_widget = widgets.CheckboxInput()
 
