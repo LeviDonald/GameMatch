@@ -1,16 +1,16 @@
 '''Game Match Website'''
-from app import app
+from sqlite3 import connect
+from os.path import abspath
 from sys import exc_info
 from math import ceil
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from flask import render_template, abort, url_for, request, redirect, flash, session
 from werkzeug.security import check_password_hash, generate_password_hash
-from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import login_user, LoginManager, login_required, logout_user, current_user
-from sqlite3 import connect
-from os.path import abspath
+from app import app
+
 
 app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{abspath('app/gamematch.db')}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -26,6 +26,7 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
+# Imports need to be here in order for the website to work
 import app.models as models
 import app.forms as forms
 
@@ -78,34 +79,6 @@ def commit_database(query, id=None):
         abort(404, exception)
 
 
-class DatabaseQuery:
-    """Flask SQLAlchemy query builder"""
-    def __init__(self, model, join_model, model_args):
-        self.model = model
-        self.join_model = join_model
-        self.model_args = model_args
-        self.query = model.query
-        return self.query_join()
-
-    def query_join(self):
-        if self.model:
-            for i in self.join_model:
-                self.query = self.query.join(i)
-        return self.query_filter()
-
-    def query_filter(self):
-        for i in range(len(self.model_args)):
-            self.query = self.query.filter(self.model_args[i])
-        return self.query_results()
-
-    def query_results(self):
-        offset = (session['page'] - 1) * LIMIT
-        results = self.query.limit(LIMIT).offset(offset).distinct().all()
-        if not session['max_pages']:
-            session['max_pages'] = self.query.distinct().count()
-        return results
-
-
 def one_id_bugfix(sort_list):
     """Removes the tuple comma at the end to make SQL not break"""
     # If only one item in tuple
@@ -136,32 +109,32 @@ def home():
     try:
         return render_template(HOME)
     except Exception as e:
-        abort(404, e)
+        return abort(404, e)
 
 
 @app.route("/login", methods=["POST", "GET"])
 def login():
     """Login form. Checks if username and password is correct and then logs in using flask-wtf"""
-    # try:
-    form = forms.LoginForm()
-    # When form is submitted
-    if form.validate_on_submit():
-        # Get user information based on input username
-        user_info = db.session.query(models.Users).filter_by(username=form.username.data).first()
-        if user_info:
-            # Using werkzeug security, check hash stored in DB
-            if check_password_hash(user_info.password, form.password.data):
-                # Flask-login logs in the user
-                login_user(user_info, remember=True)
-                return redirect(url_for('home'))
+    try:
+        form = forms.LoginForm()
+        # When form is submitted
+        if form.validate_on_submit():
+            # Get user information based on input username
+            user_info = db.session.query(models.Users).filter_by(username=form.username.data).first()
+            if user_info:
+                # Using werkzeug security, check hash stored in DB
+                if check_password_hash(user_info.password, form.password.data):
+                    # Flask-login logs in the user
+                    login_user(user_info, remember=True)
+                    return redirect(url_for('home'))
+                else:
+                    flash("Incorrect username / password")
             else:
                 flash("Incorrect username / password")
-        else:
-            flash("Incorrect username / password")
-        return redirect(url_for("login"))
-    return render_template(LOGIN, form=form)
-    # except Exception as e:
-    #     abort(404, e)
+            return redirect(url_for("login"))
+        return render_template(LOGIN, form=form)
+    except Exception as e:
+        return abort(404, e)
 
 
 @app.route("/signup", methods=["POST", "GET"])
@@ -171,7 +144,6 @@ def signup():
         form = forms.SignForm()
         if form.validate_on_submit():
             dob = form.dob.data
-            # If user is older than 17 years old (as users are given the possibility to chat through sharing discord info, I put an age limit)
             if dob <= (datetime.today() - relativedelta(years=17)).date():
                 # If a result from the DB comes back then the username has already been taken
                 user_check = db.session.query(models.Users).filter_by(username=form.username.data).first()
@@ -253,7 +225,8 @@ def games():
     # Assigns the default number for the page change part of my code as the current page
     page_form.page_num.default = session['page']
     # Manually inserts choices to style and asc/desc
-    combined_form.sort_form.sort_style.choices = [('name', 'Alphabetically'), ('playtime', 'Popularity')]
+    combined_form.sort_form.sort_style.choices = [('name', 'Alphabetically'),
+                                                  ('playtime', 'Popularity')]
     combined_form.sort_form.sort_asc.choices = [('ASC', 'Ascending'), ('DESC', 'Descending')]
     if page_form.validate_on_submit():
         # Check if the user has put in an actual input
@@ -356,17 +329,18 @@ def games():
     page_form.page_num.validators[0].max = session['max_pages']
     page_form.process()
     if current_user.is_authenticated:
-        favourite_list = []
+        fav_list = []
         favourites = db.session.query(models.FavouriteGames).filter(models.FavouriteGames.user_id == current_user.user_id).all()
         for favourite in favourites:
-            favourite_list.append(favourite.game_id)
-        return render_template(SEARCH_GAMES, page_form=page_form, form=combined_form, game_info=game_info, max_pages=session['max_pages'], page=session['page'], fav_list=favourite_list)
+            fav_list.append(favourite.game_id)
+        return render_template(SEARCH_GAMES, page_form=page_form, form=combined_form, game_info=game_info, max_pages=session['max_pages'], page=session['page'], fav_list=fav_list)
     return render_template(SEARCH_GAMES, page_form=page_form, form=combined_form, game_info=game_info, max_pages=session['max_pages'], page=session['page'])
 
 
 @app.route('/favourite_image/<int:user_id>/<int:game_id>/<int:clicked>', methods=["POST", "GET"])
 def favourite_image(user_id, game_id, clicked):
-    """Updates favourite games in database. Returns an image depending if an image is favourited or not."""
+    """Updates favourite games in database. 
+    Returns an image depending if an image is favourited or not."""
     favourite_check = db.session.query(models.FavouriteGames).filter_by(user_id=int(user_id)).all()
     for favourite in favourite_check:
         if favourite.game_id == game_id:
@@ -422,23 +396,6 @@ def favourite_game(game_id, link_id):
         return redirect(url_for('home'))
 
 
-# @app.route("/profile/<int:user_id>")
-# def profile(user_id):
-#     """View users profiles"""
-#     user_data = db.session.query(models.Users).filter_by(user_id=user_id).first()
-#     return render_template(USER_PROFILE, username=user_data.username, pfp=user_data.pfp, about_me=user_data.about, discord=user_data.discord)
-
-
-@app.route("/profile-edit", methods=["POST"])
-@login_required
-def profile_edit():
-    """Profile management"""
-    pfp_form = forms.ProfileForm()
-    if pfp_form.validate_on_submit():
-        pfp_file = pfp_form.img_file.data
-        pfp_file.file_name = secure_filename(current_user.username)
-
-
 @app.route("/game/<int:game_id>")
 def single_game(game_id):
     """Individual game information page"""
@@ -476,12 +433,14 @@ def single_game(game_id):
     developers = selected_game.select_bridge('developer')
     publishers = selected_game.select_bridge('publisher')
     if current_user.is_authenticated:
-        favourite_list = []
+        fav_list = []
         favourites = db.session.query(models.FavouriteGames).filter(models.FavouriteGames.user_id == current_user.user_id).all()
         for favourite in favourites:
-            favourite_list.append(favourite.game_id)
-        return render_template(SELECTED_GAME, game_info=selected_game, genres=genres, categories=categories, developers=developers, publishers=publishers, fav_list=favourite_list)
-    return render_template(SELECTED_GAME, game_info=selected_game, genres=genres, categories=categories, developers=developers, publishers=publishers)
+            fav_list.append(favourite.game_id)
+        return render_template(SELECTED_GAME, game_info=selected_game, genres=genres, categories=categories,
+                               developers=developers, publishers=publishers, fav_list=fav_list)
+    return render_template(SELECTED_GAME, game_info=selected_game, genres=genres, categories=categories,
+                           developers=developers, publishers=publishers)
 
 
 @app.route("/favourite_list", methods=["POST", "GET"])
@@ -516,11 +475,11 @@ def favourite_list():
         return redirect(url_for('favourite_list'))
     page_form.page_num.validators[0].max = session['max_pages']
     page_form.process()
-    favourite_list = []
+    fav_list = []
     favourites = db.session.query(models.FavouriteGames).filter(models.FavouriteGames.user_id == current_user.user_id).all()
     for favourite in favourites:
-        favourite_list.append(favourite.game_id)
-    return render_template(FAV_GAME, fav_list=favourite_list, page_form=page_form, game_info=game_info, max_pages=session['max_pages'], page=session['page'])
+        fav_list.append(favourite.game_id)
+    return render_template(FAV_GAME, fav_list=fav_list, page_form=page_form, game_info=game_info, max_pages=session['max_pages'], page=session['page'])
 
 
 if __name__ == "__main__":

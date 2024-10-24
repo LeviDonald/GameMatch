@@ -1,4 +1,4 @@
-from re import search
+from re import search, compile
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, PasswordField, IntegerField
 from wtforms import SelectField, FormField, FileField, widgets, DateField
