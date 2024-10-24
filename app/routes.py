@@ -11,6 +11,11 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import login_user, LoginManager, login_required, logout_user, current_user
 from app import app
 
+# IMPORTANT: I did do PyLint fixes beforehand but I had to git reset them
+# as some of the PyLint fixes such as putting a string on multiple lines
+# with triple quotations broke the website and some PyLint fixes
+# are just wrong such as with it being allergic to Flask-Alchemy
+# and some fixes completely break the website
 
 app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{abspath('app/gamematch.db')}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
