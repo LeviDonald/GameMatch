@@ -25,7 +25,6 @@ app.config['UPLOAD_EXTENSIONS'] = ['.jpg', '.png', '.gif']
 app.secret_key = '1e5ec2a58f909c4edbe7ffb3a7dcd84d'
 
 db = SQLAlchemy(app)
-db.Model.metadata.reflect(db.engine)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
